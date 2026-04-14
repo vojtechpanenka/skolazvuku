@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Šíření zvuku</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400&family=Fraunces:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #f5f2ec;
+    color: #1a1714;
+    font-family: 'DM Mono', monospace;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    user-select: none;
+  }
+  header {
+    padding: 1.2rem 2rem 0;
+    display: flex;
+    align-items: baseline;
+    gap: 1.2rem;
+    flex-wrap: wrap;
+  }
+  h1 { font-family: 'Fraunces', serif; font-weight: 300; font-size: 1.25rem; }
+  h1 em { font-style: italic; color: #c0392b; }
+  .hint { font-size: 0.62rem; color: #9a9590; letter-spacing: 0.08em; }
+  .controls { margin-left: auto; display: flex; gap: 1.4rem; align-items: center; flex-wrap: wrap; }
+  .ctrl { display: flex; flex-direction: column; gap: 0.2rem; align-items: flex-end; }
+  .ctrl label { font-size: 0.57rem; color: #9a9590; letter-spacing: 0.1em; text-transform: uppercase; }
+  input[type="range"] {
+    -webkit-appearance: none; width: 80px; height: 1px;
+    background: #9a9590; outline: none; cursor: pointer;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 11px; height: 11px;
+    border-radius: 50%; background: #1a1714; cursor: pointer;
+  }
+  .btn {
+    font-family: 'DM Mono', monospace; font-size: 0.6rem;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    color: #9a9590; background: none; border: 1px solid currentColor;
+    padding: 0.3rem 0.7rem; cursor: pointer; border-radius: 1px; transition: color 0.15s;
+  }
+  .btn:hover { color: #1a1714; }
+  canvas { display: block; width: 100%; touch-action: none; -webkit-user-select: none; user-select: none; }
+  #c { flex: 1; }
+  #profile { flex: none; height: 80px; }
+  footer { padding: 0.5rem 2rem; display: flex; gap: 2rem; align-items: center; }
+  .legend { margin-left: auto; display: flex; gap: 1.2rem; align-items: center; font-size: 0.56rem; color: #9a9590; }
+  .legend-item { display: flex; gap: 0.4rem; align-items: center; }
+  .ldot { width: 8px; height: 8px; border-radius: 50%; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Šíření <em>zvuku</em> vzduchem</h1>
+  <span class="hint">Klikněte na reprák</span>
+  <div class="controls">
+    <div class="ctrl">
+      <label>Rychlost vlny</label>
+      <input type="range" id="spdSlider" min="50" max="250" step="5" value="150">
+    </div>
+    <div class="ctrl">
+      <label>Amplituda</label>
+      <input type="range" id="ampSlider" min="10" max="40" step="1" value="25">
+    </div>
+    <div class="ctrl">
+      <label>Vlnová délka</label>
+      <input type="range" id="sigSlider" min="15" max="240" step="5" value="125">
+    </div>
+    <button class="btn" id="pauseBtn" onclick="togglePause()" style="min-width:6.5rem">Pauza</button>
+    <button class="btn" onclick="resetAll()">Reset</button>
+  </div>
+</header>
+<canvas id="c"></canvas>
+<canvas id="profile" height="80" style="display:block; width:100%; border-top:1px solid rgba(26,23,20,0.08);"></canvas>
+<footer>
+  <div class="legend">
+    <div class="legend-item"><div class="ldot" style="background:#c0392b;opacity:0.85"></div>zhuštění — čelo vlny</div>
+    <div class="legend-item"><div class="ldot" style="background:#2471a3;opacity:0.85"></div>zředění — za vlnou</div>
+    <div class="legend-item"><div class="ldot" style="background:#1a1714;opacity:0.18"></div>klidová poloha</div>
+  </div>
+</footer>
+
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const profCanvas = document.getElementById('profile');
+const profCtx = profCanvas.getContext('2d');
+let W, H, PW, PH;
+let particles = [];
+let waves = [];
+let lastTime = null;
+let pulseFade = 0;
+let paused = false;
+let holding = false;
+let holdTimer = null;
+
+const ROWS = 21, COLS = 35;
+const P_RAD = 3.5;
+
+function srcX() { return 37; }
+function srcY() { return H * 0.50; }
+function waveSpeed() { return parseFloat(document.getElementById('spdSlider').value); }
+function amplitude()  { return parseFloat(document.getElementById('ampSlider').value); }
+function lambdaPx()   { return parseFloat(document.getElementById('sigSlider').value); }
+function sigma()      { return lambdaPx() / 4.8; }
+
+// ── grid ──────────────────────────────────────────────────────────────────────
+function buildGrid() {
+  particles = [];
+  const mx = 52, my = 44;
+  const aw = W - mx * 2, ah = H - my * 2;
+  const dx = aw / (COLS - 1), dy = ah / (ROWS - 1);
+  const sx = srcX(), sy = srcY();
+
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const hexShift = (r % 2) * dx * 0.5;
+      const rx = mx + c * dx + hexShift;
+      const ry = my + r * dy;
+      if (rx > W - mx + 5) continue;
+      const ddx = rx - sx, ddy = ry - sy;
+      if (Math.sqrt(ddx*ddx + ddy*ddy) < 52) continue;
+      particles.push({ rx, ry, x: rx, y: ry, disp: 0, dot: 0 });
+    }
+  }
+}
+
+// ── waves ─────────────────────────────────────────────────────────────────────
+function emitWave() {
+  waves.push({ ox: srcX(), oy: srcY(), r: 0 });
+  pulseFade = 1;
+}
+
+// ── zeď (Huygensův princip) ───────────────────────────────────────────────────
+// Zeď je svislá čára na 2/3 canvasu.
+// Každý bod zdi funguje jako sekundární zdroj — při dopadu vlny emituje
+// odraženou vlnu se stejnou amplitudou ale z pozice zdi.
+// Výsledek: interference dopadající a odražené vlny = stojaté vlnění.
+
+const WALL_X_FRAC   = 5 / 6;
+const N_WALL_POINTS = 30;    // počet Huygensových bodů po výšce zdi
+
+let reflectedWaves = [];     // odražené vlny od zdi
+
+function wallX() { return Math.round(W * WALL_X_FRAC); }
+
+// Pro každou primární vlnu zkontrolujeme, zda právě prošla každým bodem zdi.
+// Pokud ano, emitujeme odraženou vlnu z toho bodu.
+function updateWallReflections() {
+  const wx  = wallX();
+  const sig = sigma();
+
+  for (const w of waves) {
+    // y-souřadnice bodů zdi
+    for (let i = 0; i < N_WALL_POINTS; i++) {
+      const wy = (i + 0.5) * H / N_WALL_POINTS;
+
+      const ddx  = wx - w.ox;
+      const ddy  = wy - w.oy;
+      const dist = Math.sqrt(ddx*ddx + ddy*ddy);
+
+      // Vlna dorazí na tento bod zdi když w.r ≈ dist
+      // Emitujeme odraženou vlnu v okamžiku průchodu (jednou)
+      // Detekce: w.r překročilo dist v tomto framu
+      // Použijeme w.lastR pro detekci přechodu
+      if (w.lastR !== undefined && w.lastR < dist && w.r >= dist) {
+        reflectedWaves.push({ ox: wx, oy: wy, r: 0, amp: 1 / Math.sqrt(N_WALL_POINTS) });
+      }
+    }
+    w.lastR = w.r;
+  }
+
+  // Odstraníme staré odražené vlny
+  const maxR = Math.sqrt(W*W + H*H) + 200;
+  reflectedWaves = reflectedWaves.filter(w => w.r < maxR);
+}
+
+function drawWall() {
+  const wx = wallX();
+  ctx.strokeStyle = 'rgba(26,23,20,0.55)';
+  ctx.lineWidth = 3;
+  ctx.lineCap = 'square';
+  ctx.beginPath();
+  ctx.moveTo(wx, 0);
+  ctx.lineTo(wx, H);
+  ctx.stroke();
+
+  // label
+  ctx.font = '8px "DM Mono"';
+  ctx.fillStyle = 'rgba(26,23,20,0.30)';
+  ctx.textAlign = 'center';
+  ctx.fillText('ZEĎ', wx, 12);
+}
+
+
+//
+// We model the source as a speaker that first pushes (compression) then pulls
+// (rarefaction). The longitudinal displacement of a particle as the pulse passes:
+//
+//   u(δ) = G(δ, 0, σ) − G(δ, −sep, σ)
+//
+// where G is a Gaussian and δ = dist − wavefront_radius.
+//
+//   δ > 0  : wave not yet arrived → u ≈ 0
+//   δ = 0  : compression peak → u > 0 (particle pushed away from source)
+//   δ = -sep/2 : zero crossing (particle passes through rest going inward)
+//   δ = -sep : rarefaction peak → u < 0 (particle pulled toward source)
+//   δ << -sep : wave fully passed → u ≈ 0 (back at rest)
+//
+// This is the DERIVATIVE approach: u is the pressure shape itself (bipolar Gaussian).
+// The integral over all δ = 0, so particle returns exactly to rest. ✓
+//
+// The previous CDF approach gave u always ≥ 0, which is why rarefaction
+// never showed negative displacement.
+
+function displacementProfile(delta, sig) {
+  const sep = sig * 2.4;
+  // Compression lobe: positive, peaks at δ=0
+  const comp =  Math.exp(-(delta * delta) / (2 * sig * sig));
+  // Rarefaction lobe: negative, peaks at δ=−sep (behind the wavefront)
+  const rare = -Math.exp(-((delta + sep) * (delta + sep)) / (2 * sig * sig));
+  return comp + rare;
+  // Range: peaks at +1 (compression) and −1 (rarefaction)
+  // Integral over δ from −∞ to +∞ = σ√2π − σ√2π = 0 ✓
+}
+
+// ── update particles ──────────────────────────────────────────────────────────
+function updateParticles() {
+  const amp = amplitude();
+  const sig = sigma();
+  const allWaves = [...waves, ...reflectedWaves];
+
+  for (const p of particles) {
+    // Přeskočíme částice za zdí (vpravo od ní)
+    if (p.rx > wallX()) { p.x = p.rx; p.y = p.ry; p.disp = 0; p.dot = 0; continue; }
+
+    let totalDispX = 0, totalDispY = 0;
+
+    for (const w of allWaves) {
+      const ddx  = p.rx - w.ox;
+      const ddy  = p.ry - w.oy;
+      const dist = Math.sqrt(ddx*ddx + ddy*ddy) || 1;
+      const nx   = ddx / dist;
+      const ny   = ddy / dist;
+
+      const delta  = dist - w.r;
+      const wAmp   = w.amp !== undefined ? w.amp : 1;
+      const u      = displacementProfile(delta, sig) * amp * wAmp;
+      const atten  = Math.sqrt(60 / Math.max(dist, 60));
+
+      totalDispX += nx * u * atten;
+      totalDispY += ny * u * atten;
+    }
+
+    p.x = p.rx + totalDispX;
+    p.y = p.ry + totalDispY;
+    p.disp = Math.sqrt(totalDispX*totalDispX + totalDispY*totalDispY);
+
+    const orx = p.rx - srcX(), ory = p.ry - srcY();
+    const orLen = Math.sqrt(orx*orx + ory*ory) || 1;
+    p.dot = p.disp > 0.05
+      ? (totalDispX * orx + totalDispY * ory) / (orLen * p.disp)
+      : 0;
+  }
+}
+
+// ── draw wavefront rings ──────────────────────────────────────────────────────
+function drawWaves() {
+  const sig = sigma();
+  const sep = sig * 2.4;
+
+  // primární vlny — červená/modrá
+  for (const w of waves) {
+    if (w.r < 5) continue;
+    const fade = Math.max(0, 1 - w.r / (Math.max(W, H) * 0.88));
+    drawRing(w.ox, w.oy, w.r,       30, [192, 57,  43],  0.30 * fade);
+    drawRing(w.ox, w.oy, w.r - sep, 26, [36,  113, 163], 0.22 * fade);
+  }
+
+  // odražené vlny — zelená/žlutá
+  for (const w of reflectedWaves) {
+    if (w.r < 5) continue;
+    const fade = Math.max(0, 1 - w.r / (Math.max(W, H) * 0.88));
+    const wAmp = w.amp !== undefined ? w.amp : 1;
+    drawRing(w.ox, w.oy, w.r,       30, [40,  160, 60],   0.30 * fade * wAmp);
+    drawRing(w.ox, w.oy, w.r - sep, 26, [200, 160, 20],   0.22 * fade * wAmp);
+  }
+}
+
+function drawRing(ox, oy, r, width, rgb, maxAlpha) {
+  if (r - width / 2 < 1) return;
+  const g = ctx.createRadialGradient(ox, oy, Math.max(0, r - width/2), ox, oy, r + width/2);
+  g.addColorStop(0,   `rgba(${rgb},0)`);
+  g.addColorStop(0.4, `rgba(${rgb},${maxAlpha})`);
+  g.addColorStop(0.6, `rgba(${rgb},${maxAlpha})`);
+  g.addColorStop(1,   `rgba(${rgb},0)`);
+
+  // oříznutí na levou stranu zdi
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(0, 0, wallX(), H);
+  ctx.clip();
+
+  ctx.beginPath();
+  ctx.arc(ox, oy, r + width/2, 0, Math.PI*2);
+  ctx.fillStyle = g;
+  ctx.fill();
+
+  ctx.restore();
+}
+
+// ── draw particles ────────────────────────────────────────────────────────────
+function drawParticles() {
+  const amp = amplitude();
+
+  for (const p of particles) {
+    // ghost at rest position
+    ctx.beginPath();
+    ctx.arc(p.rx, p.ry, 1.5, 0, Math.PI*2);
+    ctx.fillStyle = 'rgba(26,23,20,0.10)';
+    ctx.fill();
+
+    const t = Math.min(1, p.disp / (amp * 0.9));
+
+    let r, g, b, alpha, drawR;
+    if (p.dot >= 0) {
+      // compression — warm red, larger, pushed away
+      r = Math.round(26 + t * 166); g = Math.round(23 + t * 12); b = Math.round(20 + t * 8);
+      alpha = 0.18 + t * 0.78;
+      drawR = P_RAD * (1 + t * 0.55);
+    } else {
+      // rarefaction — cool blue, smaller, pulled inward
+      r = Math.round(26 + t * 38); g = Math.round(23 + t * 90); b = Math.round(20 + t * 163);
+      alpha = 0.18 + t * 0.60;
+      drawR = P_RAD * Math.max(0.35, 1 - t * 0.40);
+    }
+
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, Math.max(0.5, drawR), 0, Math.PI*2);
+    ctx.fillStyle = `rgba(${r},${g},${b},${alpha})`;
+    ctx.fill();
+  }
+}
+
+// ── draw source ───────────────────────────────────────────────────────────────
+function drawSource(dt) {
+  pulseFade = Math.max(0, pulseFade - dt * 1.8);
+  const sx = srcX(), sy = srcY();
+
+  // Source bounce: same displacement profile as particles, but at dist=0
+  // δ = 0 - w.r = -w.r  (wave has already passed the source by w.r pixels)
+  let sourceDisp = 0;
+  const sig = sigma();
+  for (const w of waves) {
+    const delta = -w.r;   // source is always "behind" its own wavefront
+    sourceDisp += displacementProfile(delta, sig);
+  }
+  // positive = expand (compression), negative = shrink (rarefaction)
+  const bounce = 1 + sourceDisp * 0.10;
+
+  const baseR = 28 * bounce;
+
+  if (pulseFade > 0) {
+    const pr = 30 * Math.max(1, bounce) + (1 - pulseFade) * 26;
+    ctx.beginPath();
+    ctx.arc(sx, sy, pr, 0, Math.PI*2);
+    ctx.strokeStyle = `rgba(26,23,20,${pulseFade * 0.28})`;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  }
+
+  // colour: white=rest, red=compression, dark=rarefaction
+  const clampedDisp = Math.max(-1, Math.min(1, sourceDisp));
+  let fillColor;
+  if (clampedDisp >= 0) {
+    // compression: white → red
+    const rc = Math.round(245 + clampedDisp * (192 - 245));
+    const gc = Math.round(242 + clampedDisp * (57  - 242));
+    const bc = Math.round(236 + clampedDisp * (43  - 236));
+    fillColor = `rgb(${rc},${gc},${bc})`;
+  } else {
+    // rarefaction: white → blue (matching wavefront)
+    const s2 = -clampedDisp;
+    const rc = Math.round(245 + s2 * (36  - 245));
+    const gc = Math.round(242 + s2 * (113 - 242));
+    const bc = Math.round(236 + s2 * (163 - 236));
+    fillColor = `rgb(${rc},${gc},${bc})`;
+  }
+
+  ctx.beginPath();
+  ctx.arc(sx, sy, 28, 0, Math.PI*2);
+  ctx.fillStyle = fillColor;
+  ctx.fill();
+  ctx.strokeStyle = '#1a1714';
+  ctx.lineWidth = paused ? 3.5 : 1.5;
+  ctx.stroke();
+
+  const s = 9;
+  const iconColor = clampedDisp >= 0
+    ? `rgb(${Math.round(26 + clampedDisp*166)},${Math.round(23+clampedDisp*12)},${Math.round(20+clampedDisp*8)})`
+    : '#1a1714';
+  ctx.fillStyle = iconColor;
+  ctx.fillRect(sx - s*0.85, sy - s*0.5, s*0.5, s);
+  ctx.beginPath();
+  ctx.moveTo(sx - s*0.35, sy - s*0.5);
+  ctx.lineTo(sx + s*0.55, sy - s*0.95);
+  ctx.lineTo(sx + s*0.55, sy + s*0.95);
+  ctx.lineTo(sx - s*0.35, sy + s*0.5);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = iconColor; ctx.lineWidth = 1.1; ctx.lineCap = 'round';
+  [s*0.85, s*1.35].forEach(rad => {
+    ctx.beginPath();
+    ctx.arc(sx + s*0.1, sy, rad, -Math.PI*0.42, Math.PI*0.42);
+    ctx.stroke();
+  });
+  ctx.font = '9px "DM Mono"'; ctx.fillStyle = 'rgba(26,23,20,0.28)';
+  ctx.textAlign = 'center';
+  ctx.fillText('ZDROJ', sx, sy + 44);
+}
+
+// ── tlakový profil podél osy zdroje ──────────────────────────────────────────
+function drawProfile() {
+  PW = profCanvas.width  = profCanvas.offsetWidth;
+  PH = profCanvas.height = 80;
+
+  profCtx.fillStyle = '#f5f2ec';
+  profCtx.fillRect(0, 0, PW, PH);
+
+  const sig  = sigma();
+  const cx   = srcX();
+  const midY = PH / 2;
+
+  // osa
+  profCtx.strokeStyle = 'rgba(26,23,20,0.15)';
+  profCtx.lineWidth = 1;
+  profCtx.beginPath();
+  profCtx.moveTo(0, midY); profCtx.lineTo(PW, midY);
+  profCtx.stroke();
+
+  profCtx.font = '7px "DM Mono"';
+  profCtx.fillStyle = 'rgba(26,23,20,0.28)';
+  profCtx.textAlign = 'left';
+  profCtx.fillText('tlak', 4, midY - 4);
+
+  // svislá čára na pozici zdroje
+  profCtx.strokeStyle = 'rgba(26,23,20,0.18)';
+  profCtx.setLineDash([3,3]);
+  profCtx.beginPath();
+  profCtx.moveTo(cx, 0); profCtx.lineTo(cx, PH);
+  profCtx.stroke();
+  profCtx.setLineDash([]);
+
+  if (waves.length === 0 && reflectedWaves.length === 0) return;
+
+  // Spočítáme primární a odraženou tlak zvlášť
+  const pressPrimary  = new Float32Array(PW);
+  const pressReflect  = new Float32Array(PW);
+  let maxP = 0;
+
+  for (let i = 0; i < PW; i++) {
+    const dist = i - cx;
+    if (dist < 0) continue;
+
+    let pp = 0;
+    for (const w of waves) {
+      pp += displacementProfile(dist - w.r, sig);
+    }
+    pressPrimary[i] = pp;
+
+    let pr = 0;
+    for (const w of reflectedWaves) {
+      const ddx  = i - w.ox;
+      const dist2 = Math.abs(ddx);
+      const wAmp = w.amp !== undefined ? w.amp : 1;
+      pr += displacementProfile(dist2 - w.r, sig) * wAmp;
+    }
+    pressReflect[i] = pr;
+
+    const total = Math.abs(pp) + Math.abs(pr);
+    if (total > maxP) maxP = total;
+  }
+
+  if (maxP < 0.001) return;
+  const scaleY = (PH / 2 - 6) / maxP;
+
+  // Vyplněné plochy — primární červená/modrá
+  for (let i = Math.ceil(cx); i < Math.min(PW - 1, wallX()); i++) {
+    const p = pressPrimary[i];
+    if (Math.abs(p) < 0.005) continue;
+    const y = midY - p * scaleY;
+    profCtx.fillStyle = p > 0
+      ? `rgba(192,57,43,${Math.min(0.45, Math.abs(p) * 0.55)})`
+      : `rgba(36,113,163,${Math.min(0.45, Math.abs(p) * 0.55)})`;
+    profCtx.fillRect(i, Math.min(y, midY), 1, Math.abs(y - midY));
+  }
+
+  // Vyplněné plochy — odražená zelená/žlutá
+  for (let i = Math.ceil(cx); i < Math.min(PW - 1, wallX()); i++) {
+    const p = pressReflect[i];
+    if (Math.abs(p) < 0.005) continue;
+    const y = midY - p * scaleY;
+    profCtx.fillStyle = p > 0
+      ? `rgba(40,160,60,${Math.min(0.45, Math.abs(p) * 0.55)})`
+      : `rgba(200,160,20,${Math.min(0.45, Math.abs(p) * 0.55)})`;
+    profCtx.fillRect(i, Math.min(y, midY), 1, Math.abs(y - midY));
+  }
+
+  // Čáry profilu — primární
+  profCtx.beginPath();
+  profCtx.strokeStyle = 'rgba(192,57,43,0.8)';
+  profCtx.lineWidth = 1.5;
+  let first = true;
+  for (let i = Math.ceil(cx); i < Math.min(PW, wallX()); i++) {
+    const y = midY - pressPrimary[i] * scaleY;
+    if (first) { profCtx.moveTo(i, y); first = false; }
+    else profCtx.lineTo(i, y);
+  }
+  profCtx.stroke();
+
+  // Čára profilu — odražená
+  profCtx.beginPath();
+  profCtx.strokeStyle = 'rgba(40,160,60,0.8)';
+  profCtx.lineWidth = 1.5;
+  first = true;
+  for (let i = Math.ceil(cx); i < Math.min(PW, wallX()); i++) {
+    const y = midY - pressReflect[i] * scaleY;
+    if (first) { profCtx.moveTo(i, y); first = false; }
+    else profCtx.lineTo(i, y);
+  }
+  profCtx.stroke();
+
+  // svislá čára zdi v profilu
+  const wx = wallX();
+  if (wx < PW) {
+    profCtx.strokeStyle = 'rgba(26,23,20,0.4)';
+    profCtx.lineWidth = 1.5;
+    profCtx.beginPath();
+    profCtx.moveTo(wx, 0); profCtx.lineTo(wx, PH);
+    profCtx.stroke();
+  }
+
+  // pozice nejbližší primární vlnoplochy
+  if (waves.length > 0) {
+    const nearestWave = waves.reduce((a, b) => a.r < b.r ? a : b);
+    const wfX = cx + nearestWave.r;
+    if (wfX > cx && wfX < Math.min(PW, wx)) {
+      profCtx.strokeStyle = 'rgba(192,57,43,0.3)';
+      profCtx.lineWidth = 1;
+      profCtx.setLineDash([4,4]);
+      profCtx.beginPath();
+      profCtx.moveTo(wfX, 0); profCtx.lineTo(wfX, PH);
+      profCtx.stroke();
+      profCtx.setLineDash([]);
+    }
+  }
+}
+
+// ── main loop ─────────────────────────────────────────────────────────────────
+function loop(ts) {
+  if (!lastTime) lastTime = ts;
+  const dt = Math.min((ts - lastTime) / 1000, 0.032);
+  lastTime = ts;
+
+  if (!paused) {
+    const speed = waveSpeed();
+    const maxR  = Math.sqrt(W*W + H*H) + 200;
+    for (const w of waves) w.r += speed * dt;
+    for (const w of reflectedWaves) w.r += speed * dt;
+    waves = waves.filter(w => w.r < maxR);
+    updateWallReflections();
+    updateParticles();
+  }
+
+  ctx.fillStyle = '#f5f2ec';
+  ctx.fillRect(0, 0, W, H);
+  ctx.strokeStyle = 'rgba(26,23,20,0.04)'; ctx.lineWidth = 1;
+  for (let x = 0; x < W; x += 60) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
+  for (let y = 0; y < H; y += 60) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+
+  drawWaves();
+  drawParticles();
+  drawWall();
+  drawSource(dt);
+  drawProfile();
+
+  if (!paused) requestAnimationFrame(loop);
+}
+
+// ── interaction ───────────────────────────────────────────────────────────────
+function togglePause() {
+  paused = !paused;
+  document.getElementById('pauseBtn').textContent = paused ? 'Pokračovat' : 'Pauza';
+  if (!paused) {
+    lastTime = null;
+    requestAnimationFrame(loop);
+  }
+}
+
+
+canvas.addEventListener('pointerdown', e => {
+  e.preventDefault();
+  const rect = canvas.getBoundingClientRect();
+  const dx = e.clientX - rect.left - srcX();
+  const dy = e.clientY - rect.top  - srcY();
+  if (Math.sqrt(dx*dx + dy*dy) < 36) {
+    holding = true;
+    canvas.setPointerCapture(e.pointerId);
+    holdTimer = setTimeout(() => {
+      if (holding) {
+        paused = true;
+        document.getElementById('pauseBtn').textContent = 'Pokračovat';
+        // redraw once so thick border appears immediately
+        ctx.fillStyle = '#f5f2ec';
+        ctx.fillRect(0, 0, W, H);
+        drawWaves(); drawParticles(); drawSource(0);
+      }
+    }, 150);
+  }
+});
+
+canvas.addEventListener('pointerup', e => {
+  e.preventDefault();
+  if (!holding) return;
+  clearTimeout(holdTimer);
+  holding = false;
+  canvas.releasePointerCapture(e.pointerId);
+  if (paused) {
+    paused = false;
+    lastTime = null;
+    document.getElementById('pauseBtn').textContent = 'Pauza';
+    requestAnimationFrame(loop);
+  } else {
+    const rect = canvas.getBoundingClientRect();
+    const dx = e.clientX - rect.left - srcX();
+    const dy = e.clientY - rect.top  - srcY();
+    if (Math.sqrt(dx*dx + dy*dy) < 36) emitWave();
+  }
+});
+
+canvas.addEventListener('pointermove', e => {
+  const rect = canvas.getBoundingClientRect();
+  const dx = e.clientX - rect.left - srcX();
+  const dy = e.clientY - rect.top  - srcY();
+  canvas.style.cursor = Math.sqrt(dx*dx+dy*dy) < 36 ? 'pointer' : 'default';
+});
+
+canvas.addEventListener('pointercancel', () => {
+  clearTimeout(holdTimer);
+  holding = false;
+});
+
+canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+function resize() {
+  W = canvas.width  = canvas.offsetWidth;
+  H = canvas.height = canvas.offsetHeight;
+  buildGrid(); waves = [];
+}
+function resetAll() { waves = []; reflectedWaves = []; buildGrid(); }
+
+window.addEventListener('resize', resize);
+resize();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
