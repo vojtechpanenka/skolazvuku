@@ -1,0 +1,1827 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zvuková laboratoř</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400&family=Fraunces:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #f5f2ec;
+    color: #1a1714;
+    font-family: 'DM Mono', monospace;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    user-select: none;
+    color-scheme: light;   /* zabrání tmavému režimu */
+  }
+
+  header {
+    background: #f5f2ec;   /* fixní barva nezávislá na systému */
+    color: #1a1714;
+    color-scheme: light;
+    padding: 0.8rem 1.5rem 0.7rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    border-bottom: 1px solid rgba(26,23,20,0.08);
+    transition: padding 0.2s, height 0.2s;
+  }
+  header.collapsed { padding-top: 0; padding-bottom: 0; overflow: hidden; height: 0; min-height: 0; }
+
+  h1 { font-family: 'Fraunces', serif; font-weight: 300; font-size: 1.1rem; white-space: nowrap; }
+  h1 em { font-style: italic; color: #c0392b; }
+
+  .sep { width: 1px; height: 24px; background: rgba(26,23,20,0.12); flex-shrink: 0; }
+
+  .ctrl-group { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
+  .ctrl { display: flex; flex-direction: column; gap: 0.15rem; align-items: flex-start; }
+  .ctrl label {
+    font-size: 0.52rem; color: #9a9590;
+    letter-spacing: 0.1em; text-transform: uppercase; white-space: nowrap;
+  }
+
+  input[type="range"] {
+    -webkit-appearance: none;
+    width: 72px; height: 2px;
+    background: #9a9590; outline: none; cursor: pointer;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 8px; height: 8px;
+    border-radius: 50%; background: #1a1714; cursor: pointer;
+    box-shadow: 0 0 0 2px #f5f2ec;
+  }
+
+  /* Větší ovládací prvky na mobilu */
+  @media (max-width: 600px), (pointer: coarse) {
+    header { gap: 0.8rem; padding: 0.9rem 1rem 0.9rem; }
+    input[type="range"] { width: 100px; height: 3px; }
+    input[type="range"]::-webkit-slider-thumb { width: 12px; height: 12px; }
+    .toggle { padding: 0.4rem 0.7rem; font-size: 0.65rem; }
+    .btn { padding: 0.4rem 0.8rem; font-size: 0.65rem; }
+    .ctrl label { font-size: 0.6rem; }
+  }
+
+  .toggle-group { display: flex; gap: 2px; }
+  .toggle {
+    font-family: 'DM Mono', monospace; font-size: 0.58rem;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    padding: 0.25rem 0.55rem;
+    border: 1px solid rgba(26,23,20,0.25);
+    background: #f5f2ec; color: #9a9590;
+    cursor: pointer; transition: all 0.15s; border-radius: 1px; white-space: nowrap;
+  }
+  .toggle:hover { color: #1a1714; border-color: rgba(26,23,20,0.5); }
+  .toggle.active { background: #1a1714; color: #f5f2ec; border-color: #1a1714; }
+
+  .btn {
+    font-family: 'DM Mono', monospace; font-size: 0.58rem;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    padding: 0.28rem 0.65rem;
+    border: 1px solid rgba(26,23,20,0.3);
+    background: #f5f2ec; color: #9a9590;
+    cursor: pointer; border-radius: 1px; transition: color 0.15s;
+    white-space: nowrap; min-width: 5.5rem; text-align: center;
+  }
+  .btn:hover { color: #1a1714; }
+  #menuToggle { font-size: 0.58rem; white-space: nowrap; }
+
+  @keyframes hintPulse {
+    0%   { box-shadow: 0 0 0 10px rgba(26,23,20,0.4); }
+    60%  { box-shadow: 0 0 0 2px  rgba(26,23,20,0.6); }
+    80%  { box-shadow: 0 0 0 4px  rgba(26,23,20,0.3); }
+    100% { box-shadow: 0 0 0 0px  rgba(26,23,20,0); }
+  }
+  @keyframes menuPulse {
+    0%   { box-shadow: 0 0 0 12px rgba(192,57,43,0.5); }
+    60%  { box-shadow: 0 0 0 2px  rgba(192,57,43,0.7); }
+    80%  { box-shadow: 0 0 0 4px  rgba(192,57,43,0.4); }
+    100% { box-shadow: 0 0 0 2px  rgba(192,57,43,0.7); }
+  }
+    0%   { box-shadow: 0 0 0 12px rgba(192,57,43,0.5); }
+    60%  { box-shadow: 0 0 0 2px  rgba(192,57,43,0.7); }
+    80%  { box-shadow: 0 0 0 4px  rgba(192,57,43,0.4); }
+    100% { box-shadow: 0 0 0 2px  rgba(192,57,43,0.7); }
+  }
+  #showMenu {
+    border-color: rgba(192,57,43,0.7) !important;
+  }
+  #showMenu.pulse {
+    animation: menuPulse 2s ease-out forwards;
+  }
+  canvas { display: block; width: 100%; touch-action: none; -webkit-user-select: none; }
+  #c { flex: 1 !important; min-height: 100px; }
+  #profile { flex: none; height: 80px; }
+  #resizer {
+    flex: none; height: 6px;
+    background: rgba(26,23,20,0.07);
+    cursor: ns-resize; transition: background 0.15s; position: relative;
+  }
+  #resizer::after {
+    content: ''; position: absolute; left: 50%; top: 50%;
+    transform: translate(-50%,-50%);
+    width: 32px; height: 2px; border-radius: 1px;
+    background: rgba(26,23,20,0.25);
+  }
+  #resizer:hover, #resizer.active { background: rgba(26,23,20,0.18); }
+
+  footer {
+    background: #f5f2ec;
+    padding: 0.4rem 1.5rem; display: flex; gap: 1.5rem;
+    align-items: center; flex-wrap: wrap;
+    border-top: 1px solid rgba(26,23,20,0.08);
+  }
+  .legend { display: flex; gap: 1rem; align-items: center; font-size: 0.52rem; color: #9a9590; flex-wrap: wrap; }
+  .legend-item { display: flex; gap: 0.3rem; align-items: center; }
+  .ldot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .btn { color: #4a4540; border-color: rgba(26,23,20,0.4); background: #ede9e2; }
+  .btn:hover { color: #1a1714; background: #e0dcd4; border-color: rgba(26,23,20,0.6); }
+  .info { font-size: 0.56rem; color: #9a9590; margin-left: auto; }
+
+  #lambdaBar {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    padding: 0.45rem 1.5rem;
+    background: #ede9e2;
+    border-bottom: 1px solid rgba(26,23,20,0.1);
+    color-scheme: light;
+  }
+  #lambdaBar label {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 0.9rem;
+    color: #c0392b;
+    white-space: nowrap;
+  }
+  #lambdaBar input[type="range"] { width: 100%; max-width: 320px; flex: 1; }
+  #lambdaBar span { font-size: 0.6rem; color: #6a6560; white-space: nowrap; min-width: 3rem; }
+  @media (pointer: coarse) {
+    #lambdaBar { padding: 0.6rem 1rem; }
+    #lambdaBar input[type="range"] { height: 3px; }
+    #lambdaBar input[type="range"]::-webkit-slider-thumb { width: 20px; height: 20px; }
+  }
+</style>
+</head>
+<body>
+
+<header id="header">
+  <div style="display:flex;flex-direction:column;gap:0.1rem">
+    <h1>Zvuková <em>laboratoř</em></h1>
+    <div id="subtitleInHeader" style="font-size:0.52rem;color:#9a9590;letter-spacing:0.05em">nástroj pro demonstraci šíření zvuku</div>
+  </div>
+
+  <div class="sep"></div>
+
+  <!-- Zdroj -->
+  <div class="ctrl-group">
+    <div class="ctrl">
+      <label>Zdroj</label>
+      <div class="toggle-group">
+        <button class="toggle active" id="srcOmni" onclick="setSourceType('omni')">Bodový</button>
+        <button class="toggle" id="srcLine" onclick="setSourceType('line')">Liniový</button>
+      </div>
+    </div>
+    <div class="ctrl" id="srcSizeCtrl">
+      <label>Výška zdroje</label>
+      <input type="range" id="srcSize" min="40" max="220" step="4" value="120">
+    </div>
+  </div>
+
+  <div class="sep"></div>
+
+  <!-- Překážka -->
+  <div class="ctrl-group">
+    <div class="ctrl">
+      <label>Překážka</label>
+      <div class="toggle-group">
+        <button class="toggle active" id="wallNone" onclick="setWallType('none')">Žádná</button>
+        <button class="toggle" id="wallFull" onclick="setWallType('wall')">Stěna</button>
+        <button class="toggle" id="wallSlit" onclick="setWallType('slit')">Otvor</button>
+        <button class="toggle" id="wallPart" onclick="setWallType('obstacle')">Překážka</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="sep"></div>
+
+  <!-- Fyzika -->
+  <div class="ctrl-group">
+    <div class="ctrl">
+      <label>Rychlost vlny</label>
+      <input type="range" id="spdSlider" min="50" max="250" step="5" value="150">
+    </div>
+    <div class="ctrl">
+      <label>Amplituda</label>
+      <input type="range" id="ampSlider" min="1" max="20" step="1" value="10">    </div>
+  </div>
+
+  <div class="sep"></div>
+
+  <button class="btn" id="pauseBtn" onclick="togglePause()">Pauza</button>
+  <button class="btn" onclick="resetAll()">Reset</button>
+  <button class="btn" id="menuToggle" onclick="toggleMenu()" style="margin-left:auto">☰ skrýt</button>
+</header>
+
+<!-- Vlnová délka — vždy viditelná, mimo skrývané menu -->
+<div id="lambdaBar">
+  <label for="sigSlider">λ</label>
+  <input type="range" id="sigSlider" min="15" max="240" step="5" value="125">
+  <span id="sigVal">125 px</span>
+</div>
+
+<div id="collapsedBar" style="display:none;align-items:center;padding:0.3rem 1rem 0.3rem 1.5rem;background:#f5f2ec;color-scheme:light;border-bottom:1px solid rgba(26,23,20,0.08);gap:1rem;">
+  <span style="font-family:'DM Mono',monospace;font-size:0.52rem;color:#9a9590;letter-spacing:0.05em;flex:1">nástroj pro demonstraci šíření zvuku</span>
+  <button id="showMenu" onclick="toggleMenu()" style="font-family:'DM Mono',monospace;font-size:0.58rem;letter-spacing:0.08em;padding:0.28rem 0.65rem;border:1px solid rgba(26,23,20,0.3);background:#f5f2ec;color:#4a4540;cursor:pointer;border-radius:1px;white-space:nowrap;">☰ menu</button>
+</div>
+<div style="position:relative;display:contents">
+<canvas id="c"></canvas>
+<div id="srcHint" style="position:fixed;background:#1a1714;color:#f5f2ec;font-family:'DM Mono',monospace;font-size:0.75rem;letter-spacing:0.06em;padding:0.35rem 0.75rem;border-radius:2px;pointer-events:none;white-space:nowrap;transition:opacity 0.3s;z-index:50;animation:hintPulse 2s ease-out forwards;transform:translateY(-0.6em);">
+  Klikni na mě
+  <div style="position:absolute;bottom:-5px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:5px solid #1a1714;"></div>
+</div>
+</div>
+<div id="resizer"></div>
+<canvas id="profile" height="80"></canvas>
+
+<footer>
+  <div class="legend">
+    <div class="legend-item"><div class="ldot" style="background:#c0392b"></div>zhuštění</div>
+    <div class="legend-item"><div class="ldot" style="background:#2471a3"></div>zředění</div>
+    <div class="legend-item"><div class="ldot" style="background:#28a045"></div>odraz</div>
+    <div class="legend-item"><div class="ldot" style="background:#8c3cc8"></div>difrakce</div>
+    <div class="legend-item"><div class="ldot" style="background:#1a1714;opacity:0.7"></div>interference (profil)</div>
+  </div>
+  <div class="info" id="infoBar">—</div>
+  <button onclick="openContact()" style="font-family:'DM Mono',monospace;font-size:0.52rem;letter-spacing:0.08em;text-transform:uppercase;padding:0.25rem 0.55rem;border:1px solid rgba(26,23,20,0.6);background:#1a1714;color:#f5f2ec;cursor:pointer;border-radius:1px;margin-left:auto;white-space:nowrap;">Kontakt</button>
+</footer>
+
+<!-- Kontakt modal -->
+<div id="contactModal" style="display:none;position:fixed;inset:0;z-index:200;background:rgba(26,23,20,0.5);align-items:center;justify-content:center;">
+  <div style="position:relative;background:#1a1714;color:#f5f2ec;font-family:'DM Mono',monospace;padding:2.5rem 3rem;border-radius:2px;min-width:260px;text-align:center;line-height:2;">
+    <button onclick="closeContact()" style="position:absolute;top:10px;right:14px;background:none;border:none;color:#f5f2ec;font-size:1.6rem;cursor:pointer;line-height:1;padding:0;">×</button>
+    <div style="font-size:0.85rem;letter-spacing:0.06em;margin-bottom:0.2rem;">Vojtěch Panenka</div>
+    <div style="font-size:0.52rem;color:#9a9590;letter-spacing:0.05em;margin-bottom:0.4rem;line-height:1.6;">Vytvořeno @2026 pro výukové účely,<br>chyby a nepřesnosti vyhrazeny.</div>
+    <div style="font-size:0.52rem;color:#9a9590;letter-spacing:0.05em;margin-bottom:1.2rem;line-height:1.6;">Feedback nebo nápady posílejte na<br><a href="mailto:info@vojtechpanenka.com" style="color:#c8c4c0;">info@vojtechpanenka.com</a>.</div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// CANVAS + CONTEXT
+// ═══════════════════════════════════════════════════════
+const canvas     = document.getElementById('c');
+const ctx        = canvas.getContext('2d');
+const profCanvas = document.getElementById('profile');
+const profCtx    = profCanvas.getContext('2d');
+let W, H, PW, PH;
+
+// ═══════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════
+let sourceType = 'omni';
+let wallType   = 'none';
+
+let waves          = [];
+let reflectedWaves = [];
+let diffractedWaves= [];
+let particles      = [];
+
+let paused   = false;
+let lastTime = null;
+let pulseFade= 0;
+
+// Draggable positions (set after first resize)
+let srcPosX = 42, srcPosY = 0;
+let srcHeight  = 120;
+let wallPosX   = 0;
+let wallHeight = 128;
+let wallCentreY= 0;
+
+// ═══════════════════════════════════════════════════════
+// SLIDERS
+// ═══════════════════════════════════════════════════════
+function waveSpeed() { return +document.getElementById('spdSlider').value; }
+function amplitude() { return +document.getElementById('ampSlider').value; }
+function lambdaPx()  { return +document.getElementById('sigSlider').value; }
+function sigma()     { return lambdaPx() / 4.8; }
+
+// Source geometry — from draggable state
+function srcX()    { return srcPosX; }
+function srcY()    { return srcPosY; }
+function srcSize() { return srcHeight; }
+function srcTop()  { return srcPosY - srcHeight/2; }
+function srcBot()  { return srcPosY + srcHeight/2; }
+
+// Wall geometry — from draggable state
+function wallX()   { return wallPosX; }
+function wallH()   { return wallHeight; }
+function wallTop() { return wallCentreY - wallHeight/2; }
+function wallBot() { return wallCentreY + wallHeight/2; }
+
+// Sync sliders → state
+function syncToSliders() {
+  document.getElementById('srcSize').value = Math.round(srcHeight);
+}
+
+// N subsources for line source
+const N_LINE_DENSITY = 0.18;  // podszdrojů na pixel výšky zdroje
+
+function nLine() { return Math.max(2, Math.round(srcSize() * N_LINE_DENSITY)); }
+const N_WALL_PTS = 20;
+const SPACING = 14;   // particle grid spacing px
+const P_RAD   = 2.0;
+
+// ═══════════════════════════════════════════════════════
+// UI CONTROLS
+// ═══════════════════════════════════════════════════════
+function setSourceType(t) {
+  sourceType = t;
+  document.getElementById('srcOmni').classList.toggle('active', t === 'omni');
+  document.getElementById('srcLine').classList.toggle('active', t === 'line');
+  document.getElementById('srcSizeCtrl').style.display = t === 'line' ? '' : 'none';
+  const amp = document.getElementById('ampSlider');
+  if (t === 'omni') {
+    amp.min = 1; amp.max = 20; amp.value = 10;
+  } else {
+    amp.min = 10; amp.max = 30; amp.value = 20;
+  }
+  resetAll();
+}
+
+function setWallType(t) {
+  wallType = t;
+  ['wallNone','wallFull','wallSlit','wallPart'].forEach(id => document.getElementById(id).classList.remove('active'));
+  const btnId = t==='none' ? 'wallNone' : t==='wall' ? 'wallFull' : t==='slit' ? 'wallSlit' : 'wallPart';
+  document.getElementById(btnId).classList.add('active');
+  if (wallPosX === 0) wallPosX = Math.round(W * 0.68);
+  if (wallCentreY === 0) wallCentreY = H / 2;
+  resetAll();
+}
+
+// Slider → state sync
+document.getElementById('srcSize').addEventListener('input', ()=>{ srcHeight=+document.getElementById('srcSize').value; buildGrid(); });
+document.getElementById('sigSlider').addEventListener('input', ()=>{
+  document.getElementById('sigVal').textContent = document.getElementById('sigSlider').value + ' px';
+});
+
+let menuVisible = true;
+
+// Na mobilním zařízení (dotyk) defaultně skryjeme menu
+if (window.matchMedia('(pointer: coarse)').matches) {
+  menuVisible = false;
+  document.getElementById('header').classList.add('collapsed');
+  document.getElementById('menuToggle').textContent = '☰ menu';
+  const bar = document.getElementById('collapsedBar');
+  bar.style.display = 'flex';
+  const btn = document.getElementById('showMenu');
+  btn.classList.add('pulse');
+}
+
+function toggleMenu() {
+  menuVisible = !menuVisible;
+  document.getElementById('header').classList.toggle('collapsed', !menuVisible);
+  document.getElementById('menuToggle').textContent = menuVisible ? '☰ skrýt' : '☰ menu';
+  const bar = document.getElementById('collapsedBar');
+  bar.style.display = menuVisible ? 'none' : 'flex';
+  if (!menuVisible) {
+    const btn = document.getElementById('showMenu');
+    btn.classList.remove('pulse');
+    void btn.offsetWidth;
+    btn.classList.add('pulse');
+  }
+  requestAnimationFrame(() => resize());
+}
+
+function togglePause() {
+  paused = !paused;
+  document.getElementById('pauseBtn').textContent = paused ? 'Pokračovat' : 'Pauza';
+  if (!paused) { lastTime = null; requestAnimationFrame(loop); }
+}
+
+// ═══════════════════════════════════════════════════════
+// PARTICLES
+// ═══════════════════════════════════════════════════════
+function buildGrid() {
+  particles = [];
+  const startX = 20;   // začátek mřížky — konstantní od levého okraje
+  const my = 42;
+  const rows = Math.floor((H - my*2) / SPACING);
+  const cols = Math.floor((W - startX - 20) / SPACING);
+  const oy = my + ((H - my*2) - (rows-1)*SPACING) / 2;
+
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const hx = (r%2) * SPACING * 0.5;
+      const rx = startX + c*SPACING + hx;
+      const ry = oy + r*SPACING;
+      if (rx > W-15) continue;
+      // vynech částice uvnitř zdroje
+      if (sourceType === 'line') {
+        if (rx >= srcX()-14 && rx <= srcX()+14 && ry >= srcTop()-6 && ry <= srcBot()+6) continue;
+      }
+      if (sourceType === 'omni') {
+        if (Math.sqrt((rx-srcX())**2+(ry-srcY())**2) < 45) continue;
+      }
+      particles.push({ rx, ry, x:rx, y:ry, disp:0, dot:0 });
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// WAVES
+// ═══════════════════════════════════════════════════════
+function emitWave() {
+  const wx = wallX();
+  const mirrorX = 2 * wx - srcX();
+  const slitAmp = 1 - wallH()/H;  // část stěny která odráží (mimo otvor)
+
+  if (sourceType === 'omni') {
+    waves.push({ ox: srcX(), oy: srcY(), r:0, type:'primary', amp: 1 });
+    if (wallType === 'wall') {
+      reflectedWaves.push({ ox: mirrorX, oy: srcY(), r:0, amp: 1, type:'reflected' });
+    } else if (wallType === 'obstacle') {
+      reflectedWaves.push({ ox: mirrorX, oy: srcY(), r:0, amp: wallH()/H, type:'reflected' });
+    } else if (wallType === 'slit') {
+      reflectedWaves.push({ ox: mirrorX, oy: srcY(), r:0, amp: slitAmp, type:'reflected' });
+    }
+  } else {
+    const subAmp = 1 / nLine();
+    for (let i = 0; i < nLine(); i++) {
+      const wy = srcTop() + (i+0.5) * srcSize() / nLine();
+      waves.push({ ox: srcX(), oy: wy, r:0, type:'primary', amp: subAmp });
+      if (wallType === 'wall') {
+        reflectedWaves.push({ ox: mirrorX, oy: wy, r:0, amp: subAmp, type:'reflected' });
+      } else if (wallType === 'obstacle') {
+        reflectedWaves.push({ ox: mirrorX, oy: wy, r:0, amp: (wallH()/H)*subAmp, type:'reflected' });
+      } else if (wallType === 'slit') {
+        reflectedWaves.push({ ox: mirrorX, oy: wy, r:0, amp: slitAmp*subAmp, type:'reflected' });
+      }
+    }
+  }
+  pulseFade = 1;
+}
+
+// ═══════════════════════════════════════════════════════
+// DISPLACEMENT PROFILE
+// ═══════════════════════════════════════════════════════
+function displacementProfile(delta, sig) {
+  const lam = sig * 4.8;
+  if (delta > 0 || delta < -lam) return 0;
+  // Začínáme kladnou půlvlnou (komprese), pak zápornou (rarefakce)
+  // sin(2π·δ/λ) pro δ∈(-λ,0) dává zápornou pak kladnou → negujeme
+  return -Math.sin(2 * Math.PI * delta / lam);
+}
+
+// ═══════════════════════════════════════════════════════
+// WALL REFLECTIONS — metoda zrcadlového zdroje
+// ═══════════════════════════════════════════════════════
+function updateWall() {
+  if (wallType !== 'obstacle' && wallType !== 'slit') return;
+
+  const wx = wallX();
+  const wt = wallTop(), wb = wallBot(), wh = wb - wt;
+  const lam = lambdaPx();
+  const difFactor = Math.min(1, lam / wh);
+
+  for (const w of waves) {
+    if (w.type !== 'primary') continue;
+    const wAmp = w.amp !== undefined ? w.amp : 1;
+    // Pro překážku: edgeAmp závisí na velikosti překážky
+    // Pro otvor: difrakce z okrajů otvoru — amplituda závisí na velikosti otvoru
+    const edgeAmp = difFactor * (wallType === 'obstacle' ? Math.sqrt(1 - wh/H) : Math.sqrt(wh/H)) * wAmp;
+    for (const [ex, ey] of [[wx, wt], [wx, wb]]) {
+      const dist = Math.sqrt((ex-w.ox)**2 + (ey-w.oy)**2);
+      if (w.lastR !== undefined && w.lastR < dist && w.r >= dist) {
+        diffractedWaves.push({ ox:ex, oy:ey, r:0, amp:edgeAmp, type:'diffracted' });
+      }
+    }
+    w.lastR = w.r;
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// PARTICLE PHYSICS
+// ═══════════════════════════════════════════════════════
+function updateParticles() {
+  const amp = amplitude();
+  const sig = sigma();
+  const wx  = wallX();
+  const wt  = wallTop();
+  const wb  = wallBot();
+  const hasWall     = wallType !== 'none';
+  const hasObstacle = wallType === 'obstacle';
+  const hasFullWall = wallType === 'wall';
+  const hasSlit     = wallType === 'slit';
+  // Pro otvor: stínová oblast = celý prostor za zdí MIMO otvor (= kde stěna je)
+  // Primární vlna prochází jen otvorem, odraz z celé stěny mimo otvor
+
+  const allWaves = [...waves, ...reflectedWaves, ...diffractedWaves];
+
+  for (const p of particles) {
+    // Particle in wall body — static
+    if (hasWall) {
+      const inWallBody = (hasFullWall || hasSlit)
+        ? (Math.abs(p.rx - wx) < 3 && (hasSlit ? (p.ry < wt || p.ry > wb) : true))
+        : (Math.abs(p.rx - wx) < 3 && p.ry >= wt && p.ry <= wb);
+      if (inWallBody) { p.x=p.rx; p.y=p.ry; p.disp=0; p.dot=0; continue; }
+    }
+
+    const behindWall = hasWall && p.rx > wx;
+
+    // Geometrický stín pro překážku
+    let inShadow = false;
+    if (hasObstacle && behindWall) {
+      const sx = srcX(), sy = srcY();
+      const t = (p.rx - sx) / (wx - sx);
+      const shadowTop = sy + (wt - sy) * t;
+      const shadowBot = sy + (wb - sy) * t;
+      inShadow = p.ry >= shadowTop && p.ry <= shadowBot;
+    }
+    // Pro otvor: "stín" = za zdí mimo otvor (kde stěna fyzicky je)
+    // Primární vlna tam neprochází, jen difrakce z okrajů otvoru
+    let inSlitShadow = false;
+    if (hasSlit && behindWall) {
+      const sx = srcX(), sy = srcY();
+      const t = (p.rx - sx) / (wx - sx);
+      const slitTop = sy + (wt - sy) * t;  // hranice paprsku k hornímu okraji otvoru
+      const slitBot = sy + (wb - sy) * t;
+      // Mimo otvor = nad horním nebo pod dolním paprskem
+      inSlitShadow = p.ry < slitTop || p.ry > slitBot;
+    }
+    const behindFree = behindWall && !inShadow && !inSlitShadow;
+
+    let tx = 0, ty = 0;
+
+    if (inShadow || inSlitShadow) {
+      const lam = lambdaPx();
+      const aperture = wb - wt;
+      const difFactor = Math.min(1, lam / aperture);
+
+      // Pro slit: částice nad otvorem reagují jen na horní okraj, pod jen na dolní
+      const edges = inSlitShadow
+        ? (p.ry < wt ? [[wx, wt]] : [[wx, wb]])
+        : [[wx, wt], [wx, wb]];
+
+      for (const w of waves) {
+        if (w.type !== 'primary') continue;
+        for (const [ex, ey] of edges) {
+          const refDist = Math.sqrt((ex-w.ox)**2+(ey-w.oy)**2);
+          const dex = p.rx-ex, dey = p.ry-ey;
+          const distEdge = Math.sqrt(dex*dex+dey*dey)||1;
+          const nex = dex/distEdge, ney = dey/distEdge;
+          const rBeyond = w.r - refDist;
+          const delta   = distEdge - rBeyond;
+          const srcNorm2 = sourceType === 'line' ? 1/nLine() : 1;
+          const u = displacementProfile(delta, sig) * amp * srcNorm2
+                  * difFactor * 0.5
+                  * Math.sqrt(60/Math.max(distEdge+60,60));
+          tx += nex*u; ty += ney*u;
+        }
+      }
+    } else {
+      for (const w of allWaves) {
+        const t = w.type;
+        if (hasFullWall && behindWall && t==='primary') continue;
+        // Pro slit: primární vlna prochází jen otvorem (inSlitShadow=false → behindFree)
+        // Blokujeme primární vlnu jen v oblasti mimo otvor (inSlitShadow)
+        if (hasSlit && behindWall && inSlitShadow && t==='primary') continue;
+        if (behindFree  && (t==='reflected'||t==='diffracted')) continue;
+        if (!behindWall && t==='diffracted') continue;
+        if (inShadow    && t!=='diffracted') continue;
+
+        // Odražená vlna u překážky: kužel od zrcadlového zdroje přes okraje překážky
+        // Stejná logika jako u kreslení vlnoplochy
+        if (hasObstacle && t==='reflected' && !behindWall) {
+          const mx = 2*wx - srcX(), my = srcY();
+          const far = Math.sqrt(W*W+H*H)*4;
+          const dxT = wx-mx, dyT = wt-my;
+          const dxB = wx-mx, dyB = wb-my;
+          const scaleT = far/Math.sqrt(dxT*dxT+dyT*dyT);
+          const scaleB = far/Math.sqrt(dxB*dxB+dyB*dyB);
+          const ptT = [mx+dxT*scaleT, my+dyT*scaleT];
+          const ptB = [mx+dxB*scaleB, my+dyB*scaleB];
+          const crossT = (ptT[0]-mx)*(p.ry-my) - (ptT[1]-my)*(p.rx-mx);
+          const crossB = (ptB[0]-mx)*(p.ry-my) - (ptB[1]-my)*(p.rx-mx);
+          if (crossT * crossB > 0) continue;
+        }
+
+        // Odražená vlna u otvoru: dvě části stěny, každá se svým kuželem
+        if (hasSlit && t==='reflected' && !behindWall) {
+          const denom = w.ox - wx;
+          if (denom <= 0) continue;
+          const tParam = (w.ox - p.rx) / denom;
+          const refY = srcY();
+          // Horní stěna (0→wt): kužel přes (wx,0) a (wx,wt)
+          // Hranice kužele v p.rx: paprsek přes wt tvoří dolní mez
+          const coneTop1 = refY + (0  - refY) * tParam;  // paprsek přes wx,0
+          const coneBot1 = refY + (wt - refY) * tParam;  // paprsek přes wx,wt
+          const inTop = p.ry >= Math.min(coneTop1, coneBot1) &&
+                        p.ry <= Math.max(coneTop1, coneBot1);
+          // Dolní stěna (wb→H): kužel přes (wx,wb) a (wx,H)
+          // Hranice kužele v p.rx: paprsek přes wb tvoří horní mez
+          const coneTop2 = refY + (wb - refY) * tParam;  // paprsek přes wx,wb
+          const coneBot2 = refY + (H  - refY) * tParam;  // paprsek přes wx,H
+          const inBot = p.ry >= Math.min(coneTop2, coneBot2) &&
+                        p.ry <= Math.max(coneTop2, coneBot2);
+          if (!inTop && !inBot) continue;
+        }
+
+        const ddx  = p.rx - w.ox;
+        const ddy  = p.ry - w.oy;
+        const dist = Math.sqrt(ddx*ddx+ddy*ddy)||1;
+        const nx = ddx/dist, ny = ddy/dist;
+  const wAmp = w.amp !== undefined ? w.amp : (sourceType === 'line' ? 1/nLine() : 1);
+        const u    = displacementProfile(dist - w.r, sig) * amp * wAmp;
+        const att  = Math.sqrt(60/Math.max(dist,60));
+        tx += nx*u*att; ty += ny*u*att;
+      }
+    }
+
+    p.x = p.rx + tx;
+    p.y = p.ry + ty;
+    p.disp = Math.sqrt(tx*tx+ty*ty);
+
+    // dot: kladný = komprese (pohyb od dominantního zdroje), záporný = rarefakce
+    // Použijeme směr celkového pohybu vůči normalizovanému vektoru pohybu
+    // Znaménko určuje největší jednotlivý příspěvek (dominant wave)
+    if (p.disp > 0.05) {
+      // Největší příspěvek určí znaménko — porovnáme s aktuálním směrem pohybu
+      p.dot = 1; // bude přepsáno níže
+      let maxU = 0;
+      const allW = [...waves, ...reflectedWaves, ...diffractedWaves];
+      for (const w of allW) {
+        const ddx = p.rx - w.ox, ddy = p.ry - w.oy;
+        const dist = Math.sqrt(ddx*ddx+ddy*ddy)||1;
+        const nx = ddx/dist, ny = ddy/dist;
+        const sig = sigma();
+        const u = displacementProfile(dist - w.r, sig) * (w.amp||1);
+        if (Math.abs(u) > Math.abs(maxU)) {
+          maxU = u;
+          // dot = projekce pohybu do směru od dominantního zdroje, se znaménkem u
+          const proj = (tx*nx + ty*ny) / p.disp;
+          p.dot = Math.sign(u) * Math.abs(proj);
+        }
+      }
+    } else {
+      p.dot = 0;
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// DRAW: RINGS
+// ═══════════════════════════════════════════════════════
+function makeGrad(ox,oy,r,w,rgb,a) {
+  const g = ctx.createRadialGradient(ox,oy,Math.max(0,r-w/2),ox,oy,r+w/2);
+  g.addColorStop(0,  `rgba(${rgb},0)`);
+  g.addColorStop(0.4,`rgba(${rgb},${a})`);
+  g.addColorStop(0.6,`rgba(${rgb},${a})`);
+  g.addColorStop(1,  `rgba(${rgb},0)`);
+  return g;
+}
+
+function drawRingClipped(ox,oy,r,width,rgb,maxA, clipFn) {
+  if (r-width/2 < 1) return;
+  const g = makeGrad(ox,oy,r,width,rgb,maxA);
+  ctx.save();
+  clipFn();
+  ctx.beginPath();
+  ctx.arc(ox,oy,r+width/2,0,Math.PI*2);
+  ctx.fillStyle = g;
+  ctx.fill();
+  ctx.restore();
+}
+
+// Čárkovaná (positive) nebo tečkovaná (negative) šedá čára na vlnoploche
+function drawRingLine(ox, oy, r, clipFn, positive) {
+  if (r < 2) return;
+  ctx.save();
+  clipFn();
+  ctx.beginPath();
+  ctx.arc(ox, oy, r, 0, Math.PI*2);
+  ctx.strokeStyle = 'rgba(26,23,20,0.55)';
+  ctx.lineWidth = 0.8;
+  ctx.setLineDash(positive ? [4, 4] : [1, 5]);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.restore();
+}
+
+function drawWaves() {
+  const sig = sigma();
+  const sep = sig * 2.4;   // λ/2 — modrý prstenec = záporná půlvlna
+  const wx  = wallX();
+  const wt  = wallTop();
+  const wb  = wallBot();
+  const hasWall = wallType !== 'none';
+  const hasObs  = wallType === 'obstacle';
+  const hasSlit = wallType === 'slit';
+
+  // Clip helper for primary/reflected — left of wall + right above/below obstacle
+  function clipPrimary() {
+    ctx.beginPath();
+    if (!hasWall) {
+      ctx.rect(0,0,W,H);
+      ctx.clip();
+    } else if (hasObs) {
+      // Vlevo od zdi: celá plocha
+      ctx.rect(0,0,wx,H);
+      ctx.clip();
+
+      // Vpravo od zdi: jen mimo geometrický stín.
+      // Stín je oblast za překážkou v kuželi od zdroje k okrajům překážky.
+      // Primární vlna prochází MIMO tento kužel = nad a pod ním.
+      // Polygon: od zdroje k hornímu okraji, pak nahoru/dolů mimo canvas, zpět.
+      const sx = srcX(), sy = srcY();
+      const dxT = wx - sx, dyT = wt - sy;
+      const dxB = wx - sx, dyB = wb - sy;
+      const far = Math.sqrt(W*W+H*H)*4;
+      const scaleT = far / Math.sqrt(dxT*dxT+dyT*dyT);
+      const scaleB = far / Math.sqrt(dxB*dxB+dyB*dyB);
+      const ptT = [sx + dxT*scaleT, sy + dyT*scaleT];
+      const ptB = [sx + dxB*scaleB, sy + dyB*scaleB];
+
+      // Oblast NAD stínem (od horního paprsku nahoru)
+      ctx.beginPath();
+      ctx.moveTo(sx, sy);
+      ctx.lineTo(ptT[0], ptT[1]);
+      ctx.lineTo(ptT[0], 0);
+      ctx.lineTo(W, 0);
+      ctx.lineTo(W, ptT[1]);
+      ctx.closePath();
+      ctx.clip();
+
+      // Oblast POD stínem (od dolního paprsku dolů) — potřebujeme druhý save/restore
+      // Není možné mít dva nesouvisející clip regiony v jednom save bloku.
+      // Řešíme tím, že clipPrimary voláme dvakrát pro každý ring (viz níže).
+    } else {
+      ctx.rect(0,0,wx,H);
+      ctx.clip();
+    }
+  }
+
+  // Pro překážku potřebujeme dva clipy — nad a pod stínem
+  function clipPrimaryAbove() {
+    if (!hasObs) { clipPrimary(); return; }
+    const sx = srcX(), sy = srcY();
+    const far = Math.sqrt(W*W+H*H)*4;
+    // Paprsek k hornímu okraji překážky
+    const dxT = wx-sx, dyT = wt-sy;
+    const scaleT = far/Math.sqrt(dxT*dxT+dyT*dyT);
+    const ptT = [sx+dxT*scaleT, sy+dyT*scaleT];
+    // Oblast nad horním paprskem (vpravo od zdi)
+    ctx.beginPath();
+    ctx.moveTo(wx, 0);
+    ctx.lineTo(W, 0);
+    ctx.lineTo(W, ptT[1] < sy ? H : ptT[1]);
+    ctx.lineTo(ptT[0], ptT[1]);
+    ctx.lineTo(sx, sy);
+    ctx.lineTo(wx, wt);
+    ctx.lineTo(wx, 0);
+    ctx.closePath();
+    ctx.clip();
+  }
+
+  function clipPrimaryBelow() {
+    if (!hasObs) { clipPrimary(); return; }
+    const sx = srcX(), sy = srcY();
+    const far = Math.sqrt(W*W+H*H)*4;
+    // Paprsek k dolnímu okraji překážky
+    const dxB = wx-sx, dyB = wb-sy;
+    const scaleB = far/Math.sqrt(dxB*dxB+dyB*dyB);
+    const ptB = [sx+dxB*scaleB, sy+dyB*scaleB];
+    // Oblast pod dolním paprskem (vpravo od zdi)
+    ctx.beginPath();
+    ctx.moveTo(wx, H);
+    ctx.lineTo(W, H);
+    ctx.lineTo(W, ptB[1] > sy ? 0 : ptB[1]);
+    ctx.lineTo(ptB[0], ptB[1]);
+    ctx.lineTo(sx, sy);
+    ctx.lineTo(wx, wb);
+    ctx.lineTo(wx, H);
+    ctx.closePath();
+    ctx.clip();
+  }
+
+  // Pro otvor: vlevo celá plocha, vpravo jen kužel otvorem
+  function clipSlitLeft() {
+    ctx.beginPath(); ctx.rect(0, 0, wx, H); ctx.clip();
+  }
+
+  function clipSlitRight() {
+    const sx = srcX(), sy = srcY();
+    const far = Math.sqrt(W*W+H*H)*4;
+    const dxT = wx-sx, dyT = wt-sy;
+    const dxB = wx-sx, dyB = wb-sy;
+    const scaleT = far/Math.sqrt(dxT*dxT+dyT*dyT);
+    const scaleB = far/Math.sqrt(dxB*dxB+dyB*dyB);
+    const ptT = [sx+dxT*scaleT, sy+dyT*scaleT];
+    const ptB = [sx+dxB*scaleB, sy+dyB*scaleB];
+    ctx.beginPath();
+    ctx.moveTo(sx, sy);
+    ctx.lineTo(ptT[0], ptT[1]);
+    ctx.lineTo(W, ptT[1]);
+    ctx.lineTo(W, ptB[1]);
+    ctx.lineTo(ptB[0], ptB[1]);
+    ctx.closePath();
+    ctx.clip();
+    ctx.beginPath(); ctx.rect(wx, 0, W-wx, H); ctx.clip();
+  }
+
+  // Primary waves (red/blue)
+  const primWaves = waves.filter(w=>w.type==='primary');
+  const groups = new Map();
+  for (const w of primWaves) {
+    const key = Math.round(w.r);
+    if (!groups.has(key)) groups.set(key,[]);
+    groups.get(key).push(w);
+  }
+  groups.forEach(grp => {
+    const fade = Math.max(0,1-grp[0].r/(Math.max(W,H)*1.8));
+    if (fade < 0.005) return;
+    const nSrc = grp.length;
+    const alpha = sourceType==='line' ? 0.28/Math.sqrt(nSrc) : 0.30;
+
+    if (hasObs) {
+      // Vlevo od zdi
+      grp.forEach(w => {
+        drawRingClipped(w.ox,w.oy,w.r,       30,[192,57,43], alpha*fade,  ()=>{ctx.beginPath();ctx.rect(0,0,wx,H);ctx.clip();});
+        if(w.r>sep+4) drawRingClipped(w.ox,w.oy,w.r-sep,26,[36,113,163],alpha*0.8*fade,()=>{ctx.beginPath();ctx.rect(0,0,wx,H);ctx.clip();});
+        drawRingLine(w.ox, w.oy, w.r,     ()=>{ctx.beginPath();ctx.rect(0,0,wx,H);ctx.clip();}, true);
+        if(w.r>sep+4) drawRingLine(w.ox, w.oy, w.r-sep, ()=>{ctx.beginPath();ctx.rect(0,0,wx,H);ctx.clip();}, false);
+      });
+      // Vpravo — nad stínem
+      grp.forEach(w => {
+        drawRingClipped(w.ox,w.oy,w.r,       30,[192,57,43], alpha*fade,  clipPrimaryAbove);
+        if(w.r>sep+4) drawRingClipped(w.ox,w.oy,w.r-sep,26,[36,113,163],alpha*0.8*fade,clipPrimaryAbove);
+        drawRingLine(w.ox, w.oy, w.r,     clipPrimaryAbove, true);
+        if(w.r>sep+4) drawRingLine(w.ox, w.oy, w.r-sep, clipPrimaryAbove, false);
+      });
+      // Vpravo — pod stínem
+      grp.forEach(w => {
+        drawRingClipped(w.ox,w.oy,w.r,       30,[192,57,43], alpha*fade,  clipPrimaryBelow);
+        if(w.r>sep+4) drawRingClipped(w.ox,w.oy,w.r-sep,26,[36,113,163],alpha*0.8*fade,clipPrimaryBelow);
+        drawRingLine(w.ox, w.oy, w.r,     clipPrimaryBelow, true);
+        if(w.r>sep+4) drawRingLine(w.ox, w.oy, w.r-sep, clipPrimaryBelow, false);
+      });
+    } else if (hasSlit) {
+      // Vlevo: celá plocha; vpravo: jen kužel otvorem
+      grp.forEach(w => {
+        drawRingClipped(w.ox,w.oy,w.r,       30,[192,57,43], alpha*fade,  clipSlitLeft);
+        if(w.r>sep+4) drawRingClipped(w.ox,w.oy,w.r-sep,26,[36,113,163],alpha*0.8*fade,clipSlitLeft);
+        drawRingLine(w.ox, w.oy, w.r,     clipSlitLeft, true);
+        if(w.r>sep+4) drawRingLine(w.ox, w.oy, w.r-sep, clipSlitLeft, false);
+      });
+      grp.forEach(w => {
+        drawRingClipped(w.ox,w.oy,w.r,       30,[192,57,43], alpha*fade,  clipSlitRight);
+        if(w.r>sep+4) drawRingClipped(w.ox,w.oy,w.r-sep,26,[36,113,163],alpha*0.8*fade,clipSlitRight);
+        drawRingLine(w.ox, w.oy, w.r,     clipSlitRight, true);
+        if(w.r>sep+4) drawRingLine(w.ox, w.oy, w.r-sep, clipSlitRight, false);
+      });
+    } else {
+      grp.forEach(w => {
+        drawRingClipped(w.ox,w.oy,w.r,       30,[192,57,43], alpha*fade,  clipPrimary);
+        if(w.r>sep+4) drawRingClipped(w.ox,w.oy,w.r-sep,26,[36,113,163],alpha*0.8*fade,clipPrimary);
+        drawRingLine(w.ox, w.oy, w.r, clipPrimary, true);
+        if(w.r>sep+4) drawRingLine(w.ox, w.oy, w.r-sep, clipPrimary, false);
+      });
+    }
+  });
+
+  // Reflected waves (green/yellow) — seskupené podle r stejně jako primární
+  // Reflected waves — překlopíme primární vlnoplochu zrcadlově kolem zdi
+  if (wallType !== 'none' && reflectedWaves.length > 0) {
+    const refAmp = reflectedWaves[0].amp || 1;
+    const refR   = reflectedWaves[0].r;
+    const fade   = Math.max(0, 1 - refR/(Math.max(W,H)*1.8));
+    if (fade >= 0.005) {
+
+      // Clip pro odraženou oblast (vlevo od zdi, případně kužel pro překážku)
+      // Ve zrcadlovém prostoru = vpravo od zdi → clipPrimary funguje správně
+      const applyReflClip = () => {
+        if (hasObs) {
+          // Ve zrcadlovém prostoru překážka je stále na wx ale zdroj je zrcadlený
+          // Použijeme jednoduchý clip vlevo od zdi (zrcadleno = vpravo)
+          ctx.beginPath(); ctx.rect(0, 0, wx, H); ctx.clip();
+        } else {
+          ctx.beginPath(); ctx.rect(0, 0, wx, H); ctx.clip();
+        }
+      };
+
+      // Kreslíme v normálním prostoru se zrcadlenými souřadnicemi
+
+      const nSrc = sourceType === 'line' ? nLine() : 1;
+      const alpha = sourceType === 'line' ? 0.28/Math.sqrt(nSrc) : 0.28;
+
+      // Clip: kužel od zrcadlového zdroje přes okraje překážky (jen pro překážku)
+      // Pro stěnu: celá levá strana
+      ctx.save();
+      if (hasObs) {
+        const mx = 2*wx - srcX(), my = srcY();
+        const far = Math.sqrt(W*W+H*H)*4;
+        const dxT = wx-mx, dyT = wt-my;
+        const dxB = wx-mx, dyB = wb-my;
+        const scaleT = far/Math.sqrt(dxT*dxT+dyT*dyT);
+        const scaleB = far/Math.sqrt(dxB*dxB+dyB*dyB);
+        const ptT = [mx+dxT*scaleT, my+dyT*scaleT];
+        const ptB = [mx+dxB*scaleB, my+dyB*scaleB];
+        ctx.beginPath();
+        ctx.moveTo(mx, my);
+        ctx.lineTo(ptT[0], ptT[1]);
+        ctx.lineTo(0, ptT[1]);
+        ctx.lineTo(0, ptB[1]);
+        ctx.lineTo(ptB[0], ptB[1]);
+        ctx.closePath();
+        ctx.clip();
+        ctx.beginPath(); ctx.rect(0, 0, wx, H); ctx.clip();
+      } else if (hasSlit) {
+        // Otvor: žádné odražené vlny — clip na prázdnou oblast
+        ctx.beginPath(); ctx.rect(0, 0, 0, 0); ctx.clip();
+      } else if (false) { // disabled
+        // Kužel otvoru od zdroje k wt a wb — odražená vlna tam není
+        const sx = srcX(), sy = srcY();
+        const far = Math.sqrt(W*W+H*H)*4;
+        const dxT = wx-sx, dyT = wt-sy;
+        const dxB = wx-sx, dyB = wb-sy;
+        const scaleT = far/Math.sqrt(dxT*dxT+dyT*dyT);
+        const scaleB = far/Math.sqrt(dxB*dxB+dyB*dyB);
+        const ptT = [sx+dxT*scaleT, sy+dyT*scaleT];
+        const ptB = [sx+dxB*scaleB, sy+dyB*scaleB];
+
+        // Nad otvorem (vlevo od zdi, nad horním paprskem)
+        ctx.beginPath();
+        ctx.moveTo(0, 0); ctx.lineTo(wx, 0);
+        ctx.lineTo(sx, sy);
+        ctx.lineTo(ptT[0], ptT[1]);
+        ctx.lineTo(0, ptT[1]);
+        ctx.closePath();
+        ctx.clip();
+        // Toto nestačí — clip je průnikový, nelze mít dvě oddělené oblasti.
+        // Musíme kreslit dvakrát (viz níže).
+        // Zatím zrušíme a necháme celou levou stranu jako fallback.
+        ctx.restore(); // zrušíme nedokončený clip
+
+        // Otvor = dvě překážky — horní (0..wt) a dolní (wb..H)
+        // Kužel odrazu od zrcadlového zdroje přes okraje každé části stěny
+        const drawSlitReflPart = (y1, y2) => {
+          // Kužel od zrcadlového zdroje přes okraje části stěny (y1..y2)
+          const mx2 = 2*wx - srcX(), my2 = srcY();
+          const far2 = Math.sqrt(W*W+H*H)*4;
+          const dxT2 = wx-mx2, dyT2 = y1-my2;
+          const dxB2 = wx-mx2, dyB2 = y2-my2;
+          const scT2 = far2/Math.sqrt(dxT2*dxT2+dyT2*dyT2);
+          const scB2 = far2/Math.sqrt(dxB2*dxB2+dyB2*dyB2);
+          const pT2 = [mx2+dxT2*scT2, my2+dyT2*scT2];
+          const pB2 = [mx2+dxB2*scB2, my2+dyB2*scB2];
+          ctx.save();
+          ctx.beginPath();
+          ctx.moveTo(mx2, my2);
+          ctx.lineTo(pT2[0], pT2[1]);
+          ctx.lineTo(0, pT2[1]);
+          ctx.lineTo(0, pB2[1]);
+          ctx.lineTo(pB2[0], pB2[1]);
+          ctx.closePath();
+          ctx.clip();
+          ctx.beginPath(); ctx.rect(0, 0, wx, H); ctx.clip();
+          groups.forEach(grp => {
+            const gfade = Math.max(0, 1 - grp[0].r/(Math.max(W,H)*1.8));
+            if (gfade < 0.005) return;
+            const ga = alpha * gfade;
+            grp.forEach(w => {
+              const mox = 2*wx - w.ox, moy = w.oy;
+              const distToWall = mox - wx;  // vzdálenost zrcadlového zdroje od zdi
+              if (w.r <= distToWall) return; // vlna ještě nedorazila na zeď
+              if (w.r > 4) {
+                const g1 = makeGrad(mox, moy, w.r, 28, '40,160,60', ga);
+                ctx.beginPath(); ctx.arc(mox, moy, w.r+14, 0, Math.PI*2);
+                ctx.fillStyle = g1; ctx.fill();
+              }
+              if (w.r > sep+4) {
+                const g2 = makeGrad(mox, moy, w.r-sep, 22, '200,160,20', ga*0.8);
+                ctx.beginPath(); ctx.arc(mox, moy, w.r-sep+11, 0, Math.PI*2);
+                ctx.fillStyle = g2; ctx.fill();
+              }
+              if (w.r > 2) {
+                ctx.beginPath(); ctx.arc(mox, moy, w.r, 0, Math.PI*2);
+                ctx.strokeStyle='rgba(26,23,20,0.55)'; ctx.lineWidth=0.8;
+                ctx.setLineDash([4,4]); ctx.stroke(); ctx.setLineDash([]);
+              }
+              if (w.r > sep+4) {
+                ctx.beginPath(); ctx.arc(mox, moy, w.r-sep, 0, Math.PI*2);
+                ctx.strokeStyle='rgba(26,23,20,0.55)'; ctx.lineWidth=0.8;
+                ctx.setLineDash([1,5]); ctx.stroke(); ctx.setLineDash([]);
+              }
+            });
+          });
+          ctx.restore();
+        };
+
+        ctx.save();
+      } else {
+        // Stěna: celá levá strana
+        ctx.beginPath(); ctx.rect(0, 0, wx, H); ctx.clip();
+      }
+
+      groups.forEach(grp => {
+        const gfade = Math.max(0, 1 - grp[0].r/(Math.max(W,H)*1.8));
+        if (gfade < 0.005) return;
+        const ga = alpha * gfade;
+        grp.forEach(w => {
+          // Zrcadlená pozice podsdroje
+          const mox = 2*wx - w.ox, moy = w.oy;
+          if (w.r > 4) {
+            const g1 = makeGrad(mox, moy, w.r, 28, '40,160,60', ga);
+            ctx.beginPath(); ctx.arc(mox, moy, w.r+14, 0, Math.PI*2);
+            ctx.fillStyle = g1; ctx.fill();
+          }
+          if (w.r > sep+4) {
+            const g2 = makeGrad(mox, moy, w.r-sep, 22, '200,160,20', ga*0.8);
+            ctx.beginPath(); ctx.arc(mox, moy, w.r-sep+11, 0, Math.PI*2);
+            ctx.fillStyle = g2; ctx.fill();
+          }
+          if (w.r > 2) {
+            ctx.beginPath(); ctx.arc(mox, moy, w.r, 0, Math.PI*2);
+            ctx.strokeStyle = 'rgba(26,23,20,0.55)'; ctx.lineWidth = 0.8;
+            ctx.setLineDash([4, 4]); ctx.stroke(); ctx.setLineDash([]);
+          }
+          if (w.r > sep+4) {
+            ctx.beginPath(); ctx.arc(mox, moy, w.r-sep, 0, Math.PI*2);
+            ctx.strokeStyle = 'rgba(26,23,20,0.55)'; ctx.lineWidth = 0.8;
+            ctx.setLineDash([1, 5]); ctx.stroke(); ctx.setLineDash([]);
+          }
+        });
+      });
+
+      ctx.restore();
+
+      // Slit: odražená vlna od horní části stěny (0 → wt) — stejná logika jako překážka
+      if (hasSlit && reflectedWaves.length > 0) {
+        const refAmp2 = reflectedWaves[0].amp || 1;
+        const fade2 = Math.max(0, 1 - reflectedWaves[0].r/(Math.max(W,H)*1.8));
+        if (fade2 >= 0.005) {
+          const nSrc2 = sourceType === 'line' ? nLine() : 1;
+          const alpha2 = sourceType === 'line' ? 0.28/Math.sqrt(nSrc2) : 0.28;
+          // Horní část stěny: body (wx, 0) a (wx, wt)
+          const drawSlitReflPart = (y1, y2) => {
+            const mx = 2*wx - srcX(), my = srcY();
+            const far = Math.sqrt(W*W+H*H)*4;
+            const dxT = wx-mx, dyT = y1-my;
+            const dxB = wx-mx, dyB = y2-my;
+            const scaleT = far/Math.sqrt(dxT*dxT+dyT*dyT);
+            const scaleB = far/Math.sqrt(dxB*dxB+dyB*dyB);
+            const ptT = [mx+dxT*scaleT, my+dyT*scaleT];
+            const ptB = [mx+dxB*scaleB, my+dyB*scaleB];
+            ctx.save();
+            ctx.beginPath();
+            ctx.moveTo(mx, my);
+            ctx.lineTo(ptT[0], ptT[1]);
+            ctx.lineTo(0, ptT[1]);
+            ctx.lineTo(0, ptB[1]);
+            ctx.lineTo(ptB[0], ptB[1]);
+            ctx.closePath();
+            ctx.clip();
+            ctx.beginPath(); ctx.rect(0, 0, wx, H); ctx.clip();
+            groups.forEach(grp => {
+              const gfade = Math.max(0, 1 - grp[0].r/(Math.max(W,H)*1.8));
+              if (gfade < 0.005) return;
+              const ga = alpha2 * gfade;
+              grp.forEach(w => {
+                const mox = 2*wx - w.ox, moy = w.oy;
+                if (w.r > 4) {
+                  const g1 = makeGrad(mox, moy, w.r, 28, '40,160,60', ga);
+                  ctx.beginPath(); ctx.arc(mox, moy, w.r+14, 0, Math.PI*2);
+                  ctx.fillStyle = g1; ctx.fill();
+                }
+                if (w.r > sep+4) {
+                  const g2 = makeGrad(mox, moy, w.r-sep, 22, '200,160,20', ga*0.8);
+                  ctx.beginPath(); ctx.arc(mox, moy, w.r-sep+11, 0, Math.PI*2);
+                  ctx.fillStyle = g2; ctx.fill();
+                }
+                if (w.r > 2) {
+                  ctx.beginPath(); ctx.arc(mox, moy, w.r, 0, Math.PI*2);
+                  ctx.strokeStyle='rgba(26,23,20,0.55)'; ctx.lineWidth=0.8;
+                  ctx.setLineDash([4,4]); ctx.stroke(); ctx.setLineDash([]);
+                }
+                if (w.r > sep+4) {
+                  ctx.beginPath(); ctx.arc(mox, moy, w.r-sep, 0, Math.PI*2);
+                  ctx.strokeStyle='rgba(26,23,20,0.55)'; ctx.lineWidth=0.8;
+                  ctx.setLineDash([1,5]); ctx.stroke(); ctx.setLineDash([]);
+                }
+              });
+            });
+            ctx.restore();
+          };
+          drawSlitReflPart(0, wt);   // horní část stěny
+          drawSlitReflPart(wb, H);   // dolní část stěny
+        }
+      }
+    }
+  }
+
+  // Diffracted waves (purple) — každý zdroj má svůj vlastní kužel
+  if (hasObs || hasSlit) {
+    for (const w of diffractedWaves) {
+      if (w.r < 5) continue;
+      const fade = Math.max(0,1-w.r/(Math.max(W,H)*1.8));
+      const a = w.amp||1;
+      const far = Math.sqrt(W*W+H*H)*4;
+
+      const isTop = Math.abs(w.oy - wt) < Math.abs(w.oy - wb);
+      const ex = wx, ey = w.oy;  // okraj překážky
+
+      const clipDiff = () => {
+        if (hasSlit) {
+          // Otvor: difrakce jde MIMO kužel otvoru (do stínu za stěnou)
+          if (isTop) {
+            // Horní okraj otvoru: vlna jde nahoru (mimo otvor)
+            const sx = srcX(), sy = srcY();
+            const dx = wx-sx, dy = wt-sy;
+            const scale = far/Math.sqrt(dx*dx+dy*dy);
+            const pt = [sx+dx*scale, sy+dy*scale];
+            ctx.beginPath();
+            ctx.moveTo(ex, ey);
+            ctx.lineTo(W, ey + (pt[1]-ey)*(W-ex)/(pt[0]-ex||1));
+            ctx.lineTo(W, 0);
+            ctx.lineTo(wx, 0);
+            ctx.lineTo(wx, ey);
+            ctx.closePath();
+            ctx.clip();
+          } else {
+            // Dolní okraj otvoru: vlna jde dolů (mimo otvor)
+            const sx = srcX(), sy = srcY();
+            const dx = wx-sx, dy = wb-sy;
+            const scale = far/Math.sqrt(dx*dx+dy*dy);
+            const pt = [sx+dx*scale, sy+dy*scale];
+            ctx.beginPath();
+            ctx.moveTo(ex, ey);
+            ctx.lineTo(W, ey + (pt[1]-ey)*(W-ex)/(pt[0]-ex||1));
+            ctx.lineTo(W, H);
+            ctx.lineTo(wx, H);
+            ctx.lineTo(wx, ey);
+            ctx.closePath();
+            ctx.clip();
+          }
+        } else {
+          // Překážka: difrakce do stínu
+          if (isTop) {
+            const sx = srcX(), sy = srcY();
+            const dx = wx-sx, dy = wt-sy;
+            const scale = far/Math.sqrt(dx*dx+dy*dy);
+            const pt = [sx+dx*scale, sy+dy*scale];
+            ctx.beginPath();
+            ctx.moveTo(ex, ey);
+            ctx.lineTo(W, ey + (pt[1]-ey)*(W-ex)/(pt[0]-ex||1));
+            ctx.lineTo(W, H);
+            ctx.lineTo(wx, H);
+            ctx.lineTo(wx, ey);
+            ctx.closePath();
+            ctx.clip();
+          } else {
+            const sx = srcX(), sy = srcY();
+            const dx = wx-sx, dy = wb-sy;
+            const scale = far/Math.sqrt(dx*dx+dy*dy);
+            const pt = [sx+dx*scale, sy+dy*scale];
+            ctx.beginPath();
+            ctx.moveTo(ex, ey);
+            ctx.lineTo(W, ey + (pt[1]-ey)*(W-ex)/(pt[0]-ex||1));
+            ctx.lineTo(W, 0);
+            ctx.lineTo(wx, 0);
+            ctx.lineTo(wx, ey);
+            ctx.closePath();
+            ctx.clip();
+          }
+        }
+        ctx.beginPath(); ctx.rect(wx, 0, W-wx, H); ctx.clip();
+      };
+
+      drawRingClipped(w.ox,w.oy,w.r,       26,[140,60,200],0.30*fade*a, clipDiff);
+      if(w.r>sep+4) drawRingClipped(w.ox,w.oy,w.r-sep,20,[200,160,20],0.22*fade*a, clipDiff);
+      drawRingLine(w.ox, w.oy, w.r, clipDiff, true);
+      if(w.r>sep+4) drawRingLine(w.ox, w.oy, w.r-sep, clipDiff, false);
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// DRAW: PARTICLES
+// ═══════════════════════════════════════════════════════
+function drawParticles() {
+  const amp = amplitude();
+  for (const p of particles) {
+    ctx.beginPath();
+    ctx.arc(p.rx,p.ry,1.4,0,Math.PI*2);
+    ctx.fillStyle='rgba(26,23,20,0.09)';
+    ctx.fill();
+
+    const t = Math.min(1, p.disp/(amp*0.85));
+    let r,g,b,alpha,dr;
+    if (p.dot>=0) {
+      r=Math.round(26+t*166); g=Math.round(23+t*12); b=Math.round(20+t*8);
+      alpha=0.18+t*0.78; dr=P_RAD*(1+t*0.5);
+    } else {
+      r=Math.round(26+t*38); g=Math.round(23+t*90); b=Math.round(20+t*163);
+      alpha=0.18+t*0.55; dr=P_RAD*Math.max(0.35,1-t*0.38);
+    }
+    ctx.beginPath();
+    ctx.arc(p.x,p.y,Math.max(0.5,dr),0,Math.PI*2);
+    ctx.fillStyle=`rgba(${r},${g},${b},${alpha})`;
+    ctx.fill();
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// DRAW: SOURCE
+// ═══════════════════════════════════════════════════════
+function drawSource(dt) {
+  pulseFade = Math.max(0, pulseFade - dt*2.2);
+  const sig = sigma();
+
+  // Compute source displacement for colour
+  let sourceDisp = 0;
+  for (const w of waves) {
+    sourceDisp += displacementProfile(-w.r, sig);
+  }
+  if (sourceType === 'line') sourceDisp /= nLine();
+  const cd = Math.max(-1,Math.min(1,sourceDisp));
+
+  let fillColor;
+  if (cd >= 0) {
+    fillColor = `rgb(${~~(245+cd*(192-245))},${~~(242+cd*(57-242))},${~~(236+cd*(43-236))})`;
+  } else {
+    const s=-cd;
+    fillColor = `rgb(${~~(245+s*(36-245))},${~~(242+s*(113-242))},${~~(236+s*(163-236))})`;
+  }
+
+  if (sourceType === 'omni') {
+    // ── Omnidirectional: circle with speaker icon ──
+    const sx=srcX(), sy=srcY();
+    if (pulseFade > 0) {
+      const pr = 30+(1-pulseFade)*22;
+      ctx.beginPath(); ctx.arc(sx,sy,pr,0,Math.PI*2);
+      ctx.strokeStyle=`rgba(26,23,20,${pulseFade*0.25})`; ctx.lineWidth=1.5; ctx.stroke();
+    }
+    ctx.beginPath(); ctx.arc(sx,sy,26,0,Math.PI*2);
+    ctx.fillStyle=fillColor; ctx.fill();
+    ctx.strokeStyle='#1a1714'; ctx.lineWidth=paused?3.5:1.5; ctx.stroke();
+
+    const s=8;
+    const ic = cd>=0
+      ? `rgb(${~~(26+cd*166)},${~~(23+cd*12)},${~~(20+cd*8)})`
+      : '#1a1714';
+    ctx.fillStyle=ic;
+    ctx.fillRect(sx-s*.85,sy-s*.5,s*.5,s);
+    ctx.beginPath();
+    ctx.moveTo(sx-s*.35,sy-s*.5); ctx.lineTo(sx+s*.55,sy-s*.95);
+    ctx.lineTo(sx+s*.55,sy+s*.95); ctx.lineTo(sx-s*.35,sy+s*.5);
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle=ic; ctx.lineWidth=1; ctx.lineCap='round';
+    [s*.82,s*1.28].forEach(rad=>{
+      ctx.beginPath(); ctx.arc(sx+s*.1,sy,rad,-Math.PI*.42,Math.PI*.42); ctx.stroke();
+    });
+    ctx.font='8px "DM Mono"'; ctx.fillStyle='rgba(26,23,20,0.25)';
+    ctx.textAlign='center'; ctx.fillText('ZDROJ',sx,sy+40);
+
+  } else {
+    // ── Line source: tall rectangle ──
+    const lx = srcX()-9, top=srcTop(), bot=srcBot(), lh=bot-top, lw=18;
+    const memDisp = cd*4;
+
+    ctx.fillStyle=fillColor;
+    ctx.strokeStyle='#1a1714'; ctx.lineWidth=paused?3.5:1.5;
+    ctx.beginPath(); ctx.rect(lx,top,lw,lh); ctx.fill(); ctx.stroke();
+
+    // membrane panel
+    ctx.fillStyle=`rgba(26,23,20,${Math.abs(cd)*0.1})`;
+    ctx.fillRect(lx+lw*.3+memDisp,top+3,lw*.55,lh-6);
+    ctx.strokeStyle='#1a1714'; ctx.lineWidth=1;
+    ctx.strokeRect(lx+lw*.3+memDisp,top+3,lw*.55,lh-6);
+
+    // screws
+    [[lx+5,top+6],[lx+5,bot-6],[lx+lw-5,top+6],[lx+lw-5,bot-6]].forEach(([sx,sy])=>{
+      ctx.beginPath(); ctx.arc(sx,sy,2,0,Math.PI*2);
+      ctx.fillStyle='#a8a4a0'; ctx.fill();
+    });
+
+    ctx.font='8px "DM Mono"'; ctx.fillStyle='rgba(26,23,20,0.25)';
+    ctx.textAlign='center';
+    ctx.fillText('ZDROJ',lx+lw/2,bot+16);
+
+    // Drag handles — průhledná kolečka s červeným obvodem
+    const hx = lx + lw/2;
+    [[hx, top], [hx, bot]].forEach(([hx2, hy]) => {
+      ctx.beginPath(); ctx.arc(hx2, hy, 5, 0, Math.PI*2);
+      ctx.fillStyle='rgba(245,242,236,0)'; ctx.fill();
+      ctx.strokeStyle='rgba(192,57,43,0.7)'; ctx.lineWidth=1; ctx.stroke();
+    });
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// DRAW: WALL
+// ═══════════════════════════════════════════════════════
+function drawWall() {
+  if (wallType==='none') return;
+  const wx=wallX(), wt=wallTop(), wb=wallBot();
+
+  ctx.strokeStyle='rgba(26,23,20,0.6)';
+  ctx.lineWidth=3; ctx.lineCap='square';
+  ctx.beginPath();
+  if (wallType==='wall') {
+    ctx.moveTo(wx,0); ctx.lineTo(wx,H);
+  } else if (wallType==='slit') {
+    // Stěna s otvorem: dvě části — nad a pod otvorem
+    ctx.moveTo(wx,0); ctx.lineTo(wx,wt);
+    ctx.moveTo(wx,wb); ctx.lineTo(wx,H);
+  } else {
+    ctx.moveTo(wx,wt); ctx.lineTo(wx,wb);
+  }
+  ctx.stroke();
+
+  if (wallType==='obstacle') {
+    [wt,wb].forEach(y=>{
+      // Červené průhledné kolečko = drag handle
+      ctx.beginPath(); ctx.arc(wx,y,5,0,Math.PI*2);
+      ctx.fillStyle='rgba(245,242,236,0)'; ctx.fill();
+      ctx.strokeStyle='rgba(192,57,43,0.7)'; ctx.lineWidth=1; ctx.stroke();
+    });
+    ctx.font='8px "DM Mono"'; ctx.fillStyle='rgba(26,23,20,0.28)';
+    ctx.textAlign='center'; ctx.fillText('PŘEKÁŽKA',wx,wt-14);
+  } else if (wallType==='slit') {
+    [wt,wb].forEach(y=>{
+      ctx.beginPath(); ctx.arc(wx,y,5,0,Math.PI*2);
+      ctx.fillStyle='rgba(245,242,236,0)'; ctx.fill();
+      ctx.strokeStyle='rgba(192,57,43,0.7)'; ctx.lineWidth=1; ctx.stroke();
+    });
+    ctx.font='8px "DM Mono"'; ctx.fillStyle='rgba(26,23,20,0.28)';
+    ctx.textAlign='center'; ctx.fillText('OTVOR',wx,wt-14);
+  } else {
+    ctx.font='8px "DM Mono"'; ctx.fillStyle='rgba(26,23,20,0.28)';
+    ctx.textAlign='center'; ctx.fillText('STĚNA',wx,12);
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// DRAW: PRESSURE PROFILE
+// ═══════════════════════════════════════════════════════
+function drawProfile() {
+  PW = profCanvas.width  = profCanvas.offsetWidth;
+  PH = profCanvas.height = profCanvas.offsetHeight || 80;
+
+  profCtx.fillStyle='#f5f2ec';
+  profCtx.fillRect(0,0,PW,PH);
+
+  const sig  = sigma();
+  const cx   = srcX();
+  const midY = PH/2;
+  const wx   = wallX();
+  const hasWall = wallType !== 'none';
+  const hasObs  = wallType === 'obstacle';
+  const hasSlit = wallType === 'slit';
+  const wt = wallTop(), wb = wallBot(), wh = wb-wt;
+  // Profil počítá tlak na ose — každý podsdroj přispívá plně
+
+  // axis
+  profCtx.strokeStyle='rgba(26,23,20,0.12)';
+  profCtx.lineWidth=1;
+  profCtx.beginPath(); profCtx.moveTo(0,midY); profCtx.lineTo(PW,midY); profCtx.stroke();
+
+  // source line
+  profCtx.strokeStyle='rgba(26,23,20,0.15)';
+  profCtx.setLineDash([3,3]);
+  profCtx.beginPath(); profCtx.moveTo(cx,0); profCtx.lineTo(cx,PH);
+  profCtx.stroke(); profCtx.setLineDash([]);
+
+  if (waves.length===0&&reflectedWaves.length===0) return;
+  const pressPrim  = new Float32Array(PW);
+  const pressRefl  = new Float32Array(PW);
+  const pressDiff  = new Float32Array(PW);
+  const lam = lambdaPx();
+  const difFactor = Math.min(1, lam/wh);
+
+  for (let i=0; i<PW; i++) {
+    const dist = i-cx;
+    if (dist<0) continue;
+
+    if (!hasWall || i < wx) {
+      const axisY = srcY();
+      const nSrc = sourceType === 'line' ? nLine() : 1;
+      let pp = 0;
+      for (const w of waves) {
+        if (w.type !== 'primary') continue;
+        const dx = i - w.ox, dy = axisY - w.oy;
+        const dist = Math.sqrt(dx*dx + dy*dy) || 1;
+        const atten = Math.sqrt(60 / Math.max(dist, 60));
+        pp += displacementProfile(dist - w.r, sig) * atten;
+      }
+      pressPrim[i] = pp / nSrc;
+
+      // Odražená vlna na ose — seskupíme body emitované současně (stejná vlna)
+      // a pro každou skupinu spočítáme průměr přes body zdi × wh/H
+      let pr = 0;
+      const emitMap = new Map();
+      for (const w of reflectedWaves) {
+        const key = Math.round(w.r * 4);
+        if (!emitMap.has(key)) emitMap.set(key, []);
+        emitMap.get(key).push(w);
+      }
+      emitMap.forEach(grp => {
+        let groupSum = 0;
+        for (const w of grp) {
+          const dx = i - w.ox, dy = axisY - w.oy;
+          const dist = Math.sqrt(dx*dx + dy*dy) || 1;
+          const delta = dist - w.r;
+          const atten = Math.sqrt(60 / Math.max(dist, 60));
+          // Použijeme w.amp který již obsahuje správnou normalizaci
+          groupSum += displacementProfile(delta, sig) * atten * (w.amp || 1);
+        }
+        // Součet (ne průměr) — w.amp již normalizuje energii
+        pr += groupSum / Math.sqrt(grp.length);
+      });
+      pressRefl[i] = pr;
+
+    } else if (hasObs) {
+      let pd=0;
+      for (const w of waves) {
+        if (w.type!=='primary') continue;
+        for (const [ex,ey] of [[wx,wt],[wx,wb]]) {
+          const refD = Math.sqrt((ex-w.ox)**2+(ey-w.oy)**2);
+          const de  = Math.abs(i-ex);
+          const rBe = w.r - refD;
+          const delta = de - rBe;
+          pd += displacementProfile(delta,sig)*difFactor*0.5
+              * Math.sqrt(60/Math.max(de+60,60));
+        }
+      }
+      pressDiff[i]=pd;
+    }
+  }
+
+  // Fixní měřítko: peak = 1.0 × lineNorm (max displacementProfile při delta=0)
+  // Peak displacementProfile = 1.0 vždy; lineNorm je už zahrnut v pp výpočtu
+  const sy = (PH/2 - 5);
+
+  // Výsledná interference = součet všech vln v každém bodě
+  const pressTotal = new Float32Array(PW);
+  for (let i = 0; i < PW; i++) {
+    pressTotal[i] = pressPrim[i] + pressRefl[i] + pressDiff[i];
+  }
+
+  // Tenké pozadí: individuální vlny jako průhledné plochy
+  function fillBg(pressArr, xFrom, xTo, posRgb, negRgb) {
+    for (let i=Math.ceil(xFrom); i<Math.min(PW-1,xTo); i++) {
+      const p=pressArr[i]; if(Math.abs(p)<0.005) continue;
+      const y=midY-p*sy;
+      profCtx.fillStyle = p>0 ? `rgba(${posRgb},0.12)` : `rgba(${negRgb},0.12)`;
+      profCtx.fillRect(i,Math.min(y,midY),1,Math.abs(y-midY));
+    }
+  }
+
+  // Silná čára: výsledná interference
+  function fillResult(pressArr, xFrom, xTo) {
+    for (let i=Math.ceil(xFrom); i<Math.min(PW-1,xTo); i++) {
+      const p=pressArr[i]; if(Math.abs(p)<0.005) continue;
+      const y=midY-p*sy;
+      profCtx.fillStyle = p>0
+        ? `rgba(192,57,43,${Math.min(0.55,Math.abs(p)*0.6)})`
+        : `rgba(36,113,163,${Math.min(0.55,Math.abs(p)*0.6)})`;
+      profCtx.fillRect(i,Math.min(y,midY),1,Math.abs(y-midY));
+    }
+    profCtx.beginPath();
+    profCtx.strokeStyle='rgba(26,23,20,0.85)'; profCtx.lineWidth=1.5;
+    let first=true;
+    for (let i=Math.ceil(xFrom); i<Math.min(PW,xTo); i++) {
+      const y=midY-pressArr[i]*sy;
+      if(first){profCtx.moveTo(i,y);first=false;}else profCtx.lineTo(i,y);
+    }
+    profCtx.stroke();
+  }
+
+  const wallEnd = hasWall ? wx : PW;
+
+  // Individuální vlny — průhledné pozadí
+  fillBg(pressPrim, cx, wallEnd, '192,57,43', '36,113,163');
+  fillBg(pressRefl, cx, wallEnd, '40,160,60',  '200,160,20');
+  if (hasObs) fillBg(pressDiff, wx, PW, '140,60,200', '200,160,20');
+
+  // Výsledná interference — silná tmavá čára
+  fillResult(pressTotal, cx, wallEnd);
+  if (hasObs) fillResult(pressDiff, wx, PW);  // za překážkou jen difrakce
+
+  // wall line in profile
+  if (hasWall && wx<PW) {
+    profCtx.strokeStyle='rgba(26,23,20,0.4)'; profCtx.lineWidth=1.5;
+    profCtx.beginPath(); profCtx.moveTo(wx,0); profCtx.lineTo(wx,PH); profCtx.stroke();
+  }
+
+  // nearest wavefront marker
+  if (waves.length>0) {
+    const nw = waves.reduce((a,b)=>a.r<b.r?a:b);
+    const wfX = cx + nw.r;
+    if (wfX>cx && wfX<Math.min(PW,wallEnd)) {
+      profCtx.strokeStyle='rgba(192,57,43,0.25)'; profCtx.lineWidth=1;
+      profCtx.setLineDash([4,4]);
+      profCtx.beginPath(); profCtx.moveTo(wfX,0); profCtx.lineTo(wfX,PH);
+      profCtx.stroke(); profCtx.setLineDash([]);
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// INFO BAR
+// ═══════════════════════════════════════════════════════
+function updateInfo() {
+  const lam = lambdaPx();
+  const wh  = wallH();
+  const ratio = lam/wh;
+  let s = `λ = ${lam.toFixed(0)} px`;
+  if (wallType!=='none') {
+    const label = wallType==='obstacle' ? 'překážky' : 'stěny';
+    s += `   |   λ/${label[0].toUpperCase()+label.slice(1)} = ${ratio.toFixed(2)}`;
+    if (wallType==='obstacle') {
+      s += ratio>1.5 ? '  → silná difrakce' : ratio>0.5 ? '  → přechod' : '  → slabá difrakce';
+    }
+  }
+  if (sourceType==='line') s += `   |   L = ${srcSize()} px   λ/L = ${(lam/srcSize()).toFixed(2)}`;
+  document.getElementById('infoBar').textContent = s;
+}
+
+// ═══════════════════════════════════════════════════════
+// MAIN LOOP
+// ═══════════════════════════════════════════════════════
+const WAVE_SPEED_SCALE = 1;
+
+function loop(ts) {
+  if (!lastTime) lastTime=ts;
+  const dt = Math.min((ts-lastTime)/1000, 0.032);
+  lastTime=ts;
+
+  const speed = waveSpeed();
+  const maxR  = Math.sqrt(W*W+H*H)+200;
+
+  for (const w of waves) w.r += speed*dt;
+  for (const w of reflectedWaves) w.r += speed*dt;
+  for (const w of diffractedWaves) w.r += speed*dt;
+  waves          = waves.filter(w=>w.r<maxR);
+  reflectedWaves = reflectedWaves.filter(w=>w.r<maxR);
+  diffractedWaves= diffractedWaves.filter(w=>w.r<maxR);
+
+  updateWall();
+  updateParticles();
+  updateInfo();
+
+  // Draw
+  ctx.fillStyle='#f5f2ec';
+  ctx.fillRect(0,0,W,H);
+  // grid
+  ctx.strokeStyle='rgba(26,23,20,0.04)'; ctx.lineWidth=1;
+  for(let x=0;x<W;x+=60){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+  for(let y=0;y<H;y+=60){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+
+  drawWaves();
+  drawParticles();
+  drawWall();
+  drawSource(dt);
+  drawProfile();
+  updateHintPos();
+
+  if (!paused) requestAnimationFrame(loop);
+}
+
+// ═══════════════════════════════════════════════════════
+// INTERACTION
+// ═══════════════════════════════════════════════════════
+const DRAG_NONE=0, DRAG_SRC=1, DRAG_WALL=2, DRAG_WALL_TOP=3, DRAG_WALL_BOT=4, DRAG_EMIT=5;
+let dragMode = DRAG_NONE;
+let dragOffX = 0, dragOffY = 0;
+
+const EDGE_GRAB = 8;   // px tolerance for grabbing wall edges
+
+function canvasPos(e) {
+  const r = canvas.getBoundingClientRect();
+  return [e.clientX - r.left, e.clientY - r.top];
+}
+
+function hitTest(mx, my) {
+  // Source
+  if (sourceType==='omni') {
+    if (Math.sqrt((mx-srcX())**2+(my-srcY())**2) < 36) return DRAG_SRC;
+  } else {
+    if (mx>=srcX()-14 && mx<=srcX()+14 && my>=srcTop()-8 && my<=srcBot()+8) return DRAG_SRC;
+  }
+  // Wall
+  if (wallType!=='none') {
+    const wx=wallX(), wt=wallTop(), wb=wallBot();
+    const nearX = Math.abs(mx-wx) < EDGE_GRAB;
+    if (nearX) {
+      if (wallType==='obstacle') {
+        if (Math.abs(my-wt) < EDGE_GRAB) return DRAG_WALL_TOP;
+        if (Math.abs(my-wb) < EDGE_GRAB) return DRAG_WALL_BOT;
+        if (my>=wt && my<=wb) return DRAG_WALL;
+      } else if (wallType==='slit') {
+        if (Math.abs(my-wt) < EDGE_GRAB) return DRAG_WALL_TOP;
+        if (Math.abs(my-wb) < EDGE_GRAB) return DRAG_WALL_BOT;
+        // tah za střed otvoru nebo stěny = pohyb
+        return DRAG_WALL;
+      } else {
+        return DRAG_WALL;
+      }
+    }
+  }
+  return DRAG_NONE;
+}
+
+function cursorForHit(hit) {
+  if (hit===DRAG_SRC)                         return 'grab';
+  if (hit===DRAG_WALL)                        return 'ew-resize';
+  if (hit===DRAG_WALL_TOP||hit===DRAG_WALL_BOT) return 'ns-resize';
+  return 'default';
+}
+
+let holdTimer = null;
+let holdFired  = false;
+
+canvas.addEventListener('pointerdown', e=>{
+  e.preventDefault();
+  const [mx,my] = canvasPos(e);
+  const hit = hitTest(mx,my);
+
+  if (hit===DRAG_NONE) return;
+
+  dragMode = hit;
+  canvas.setPointerCapture(e.pointerId);
+
+  if (hit===DRAG_SRC) {
+    dragOffX = mx - srcX();
+    dragOffY = my - srcY();
+    holdFired = false;
+    holdTimer = setTimeout(()=>{
+      holdFired = true;
+      paused = true;
+      document.getElementById('pauseBtn').textContent = 'Pokračovat';
+    }, 150);
+  } else if (hit===DRAG_WALL || hit===DRAG_WALL_TOP || hit===DRAG_WALL_BOT) {
+    dragOffX = mx - wallX();
+    dragOffY = my - wallCentreY;
+  }
+  canvas.style.cursor = cursorForHit(hit) === 'grab' ? 'grabbing' : cursorForHit(hit);
+});
+
+canvas.addEventListener('pointermove', e=>{
+  const [mx,my] = canvasPos(e);
+
+  if (dragMode===DRAG_NONE) {
+    canvas.style.cursor = cursorForHit(hitTest(mx,my));
+    return;
+  }
+
+  if (dragMode===DRAG_SRC) {
+    srcPosX = Math.max(20, Math.min(W*0.85, mx-dragOffX));
+    srcPosY = Math.max(30, Math.min(H-30,   my-dragOffY));
+    // Vymaž vlny a vrať částice na klidové pozice — nová mřížka se postaví
+    waves=[]; reflectedWaves=[]; diffractedWaves=[];
+    buildGrid();
+  } else if (dragMode===DRAG_WALL) {
+    wallPosX = Math.max(Math.round(W*0.3), Math.min(Math.round(W*0.92), mx-dragOffX));
+    if (wallType==='obstacle') wallCentreY = Math.max(50, Math.min(H-50, my-dragOffY));
+    syncToSliders();
+    waves=[]; reflectedWaves=[]; diffractedWaves=[];
+  } else if (dragMode===DRAG_WALL_TOP) {
+    const newTop = Math.max(10, Math.min(wallCentreY-20, my));
+    wallHeight = (wallCentreY - newTop) * 2;
+    wallHeight = Math.max(30, Math.min(300, wallHeight));
+    syncToSliders();
+  } else if (dragMode===DRAG_WALL_BOT) {
+    const newBot = Math.max(wallCentreY+20, Math.min(H-10, my));
+    wallHeight = (newBot - wallCentreY) * 2;
+    wallHeight = Math.max(30, Math.min(300, wallHeight));
+    syncToSliders();
+  }
+});
+
+canvas.addEventListener('pointerup', e=>{
+  e.preventDefault();
+  const [mx,my] = canvasPos(e);
+
+  clearTimeout(holdTimer);
+
+  if (dragMode===DRAG_SRC) {
+    if (holdFired) {
+      // Byl držen — oddrží pauzu
+      paused = false;
+      lastTime = null;
+      document.getElementById('pauseBtn').textContent = 'Pauza';
+      requestAnimationFrame(loop);
+    } else {
+      // Krátký tap — emituj vlnu
+      const moved = Math.sqrt((mx-dragOffX-srcX())**2+(my-dragOffY-srcY())**2);
+      if (moved < 5) { emitWave(); hideHint(); }
+    }
+  }
+
+  dragMode=DRAG_NONE;
+  canvas.releasePointerCapture(e.pointerId);
+  canvas.style.cursor = cursorForHit(hitTest(mx,my));
+});
+
+canvas.addEventListener('pointercancel',()=>{ dragMode=DRAG_NONE; });
+canvas.addEventListener('contextmenu',e=>e.preventDefault());
+
+// ═══════════════════════════════════════════════════════
+// PROFILE RESIZER
+// ═══════════════════════════════════════════════════════
+const resizer = document.getElementById('resizer');
+let resizerDragging = false;
+
+function applyProfileHeight(h) {
+  const prof = document.getElementById('profile');
+  prof.style.height = Math.max(30, Math.min(300, h)) + 'px';
+  canvas.style.removeProperty('height');
+  srcPosY = 0; wallCentreY = 0; wallPosX = 0;
+  requestAnimationFrame(() => resize());
+}
+
+resizer.addEventListener('pointerdown', e => {
+  e.preventDefault();
+  resizerDragging = true;
+  resizer.classList.add('active');
+  resizer.setPointerCapture(e.pointerId);
+});
+
+resizer.addEventListener('pointermove', e => {
+  if (!resizerDragging) return;
+  const footerH = document.querySelector('footer').getBoundingClientRect().height;
+  const bodyH   = document.body.getBoundingClientRect().height;
+  const profH   = bodyH - e.clientY - footerH - 6;
+  applyProfileHeight(profH);
+});
+
+resizer.addEventListener('pointerup',     () => { resizerDragging = false; resizer.classList.remove('active'); });
+resizer.addEventListener('pointercancel', () => { resizerDragging = false; resizer.classList.remove('active'); });
+function openContact() {
+  paused = true;
+  document.getElementById('pauseBtn').textContent = 'Spustit';
+  const m = document.getElementById('contactModal');
+  m.style.display = 'flex';
+}
+
+function closeContact() {
+  document.getElementById('contactModal').style.display = 'none';
+  paused = false;
+  lastTime = null;
+  document.getElementById('pauseBtn').textContent = 'Pauza';
+  requestAnimationFrame(loop);
+}
+
+// ═══════════════════════════════════════════════════════
+// SOURCE HINT BUBBLE
+// ═══════════════════════════════════════════════════════
+let hintVisible = true;
+const hint = document.getElementById('srcHint');
+
+function updateHintPos() {
+  if (!hintVisible) return;
+  const rect = canvas.getBoundingClientRect();
+  const hx = rect.left + srcX() * (rect.width / W);
+  const hy = rect.top  + srcY() * (rect.height / H);
+  hint.style.left = (hx - hint.offsetWidth/2) + 'px';
+  hint.style.top  = (hy - 42) + 'px';
+}
+
+function hideHint() {
+  if (!hintVisible) return;
+  hintVisible = false;
+  hint.style.opacity = '0';
+  setTimeout(() => hint.style.display = 'none', 300);
+}
+function resetAll() {
+  waves=[]; reflectedWaves=[]; diffractedWaves=[];
+  buildGrid(); updateInfo();
+}
+
+function resize() {
+  W = canvas.width  = canvas.offsetWidth;
+  H = canvas.height = canvas.offsetHeight;
+  // Init positions on first resize
+  if (srcPosY === 0) srcPosY = H/2;
+  if (srcPosX === 42) srcPosX = Math.round(W/3);
+  if (wallPosX === 0) wallPosX = Math.round(W * 0.68);
+  if (wallCentreY === 0) wallCentreY = H/2;
+  buildGrid(); updateInfo();
+}
+
+// Hide srcSizeCtrl initially (omni selected)
+document.getElementById('srcSizeCtrl').style.display='none';
+
+window.addEventListener('resize', resize);
+resize();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
