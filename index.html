@@ -488,13 +488,13 @@
                 var rows = wp.querySelectorAll('.hw-row');
                 var pad = parseInt(getComputedStyle(wp.parentElement).paddingLeft) * 2;
                 var avail = window.innerWidth - pad;
-                var size = 80;
+                var size = 12;
                 wp.style.fontSize = size + 'px';
                 rows.forEach(function(r) {
                     r.style.fontSize = '';
                 });
                 // Binary search for the right size
-                var lo = 6
+                var lo = 16
                   , hi = 120;
                 while (hi - lo > 0.5) {
                     var mid = (lo + hi) / 2;
@@ -539,7 +539,7 @@
                 <div class="pc-num">02 · Live sound</div>
                 <div class="pc-soon">Brzy</div>
                 <div class="pc-name" style="white-space:normal;">
-                    <span class="sfx-a" style="display:block;">Live</span>
+                    <span class="sound" style="display:block;">Live</span>
                     <span class="sfx-a" style="display:block;">Sound</span>
                     <span class="sfx-r" style="display:block;">Course</span>
                 </div>
