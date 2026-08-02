@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Školení návrhu ozvučovacích systémů | Škola zvuku</title>
+<meta name="description" content="Jednodenní až třídenní školení návrhu, měření a nastavení ozvučovacích systémů na míru. U vás na vlastní technice, nebo na d&amp;b audiotechnik v demoroomu v Praze.">
+<meta name="robots" content="index, follow">
+<meta property="og:title" content="Školení návrhu ozvučovacích systémů">
+<meta property="og:description" content="Návrh, měření a nastavení ozvučovacích systémů. Školení na míru pro zvukaře a AV týmy.">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="cs_CZ">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23191917'/><circle cx='50' cy='50' r='30' fill='%23BE3B20'/></svg>">
+<style>
+:root{
+  --bg:#191917;
+  --bg2:#23231F;
+  --bg3:#2C2C27;
+  --bg4:#34332C;
+  --text:#E8E4DB;
+  --muted:#8A857C;
+  --line:#45423C;
+  --red:#BE3B20;
+  --red-hi:#D8492A;
+  --gold:#C8A96A;
+  --maxw:1120px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:Arial,Helvetica,"Helvetica Neue",sans-serif;
+  font-size:17px;
+  line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+}
+img{max-width:100%;display:block}
+a{color:var(--gold);text-decoration:none}
+a:hover{text-decoration:underline}
+
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 24px}
+section{padding:88px 0;border-top:1px solid var(--line)}
+
+.eyebrow{
+  font-size:13px;font-weight:bold;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--gold);margin-bottom:22px;
+}
+h1{font-size:clamp(34px,5.6vw,60px);line-height:1.08;font-weight:bold;letter-spacing:-.02em}
+h2{font-size:clamp(26px,3.6vw,40px);line-height:1.14;font-weight:bold;letter-spacing:-.015em;margin-bottom:18px}
+h3{font-size:20px;font-weight:bold;line-height:1.25;margin-bottom:10px}
+.lead{font-size:clamp(17px,2vw,21px);color:var(--muted);max-width:66ch;line-height:1.55}
+.accent{color:var(--red)}
+.sec-intro{max-width:66ch;margin-bottom:44px}
+
+/* ---------- HERO ---------- */
+.hero{padding:64px 0 84px;position:relative;overflow:hidden}
+.hero-grid{display:grid;grid-template-columns:1.08fr .92fr;gap:52px;align-items:center}
+.hero h1{margin-bottom:26px}
+.hero .lead{margin-bottom:34px}
+.hero-img{margin:0}
+.hero-img svg{display:block;width:80%;height:auto;margin:0 auto}
+
+/* Vrstvy schématu — pořadí odpovídá data-step:
+     1 fz-zones · 2 fz-boundaries · 3 fz-signs · 4 fz-lambda
+     5 fz-frame · 6 fz-rays       · 7 fz-array · 8 fz-listener
+   Pro postupné odkrývání dej na <figure class="hero-img"> atribut
+   data-reveal="N" a odkomentuj blok níže — schované zůstanou vrstvy
+   s vyšším krokem. Schéma je převod z fresnel-zdroj.pdf, viz opt_svg.py. */
+.fz-layer{transition:opacity .5s ease}
+/*
+.hero-img[data-reveal="1"] [data-step="2"],
+.hero-img[data-reveal="1"] [data-step="3"],
+.hero-img[data-reveal="2"] [data-step="3"],
+.hero-img[data-reveal] [data-step="4"],
+.hero-img[data-reveal] [data-step="5"]{opacity:0}
+*/
+
+.btn{
+  display:inline-block;background:var(--red);color:#fff;font-weight:bold;
+  font-size:17px;padding:16px 34px;border:none;cursor:pointer;
+  letter-spacing:.01em;transition:background .15s ease;font-family:inherit;
+}
+.btn:hover{background:var(--red-hi);text-decoration:none;color:#fff}
+.btn-note{display:block;font-size:14px;color:var(--muted);margin-top:14px}
+
+/* ---------- POSTUP ---------- */
+.flow{display:flex;align-items:stretch}
+.flow .step{
+  flex:1 1 0;background:var(--bg2);border:1px solid var(--line);
+  display:flex;flex-direction:column;min-width:0;overflow:hidden;
+}
+.flow .step img,
+.flow .step .ph{
+  width:100%;aspect-ratio:16/9;object-fit:contain;object-position:center;
+  background:var(--bg);border-bottom:1px solid var(--line);display:block;
+}
+.flow .step .ph{
+  background:var(--bg3);display:flex;align-items:center;justify-content:center;
+  color:var(--muted);font-size:12px;letter-spacing:.06em;text-align:center;padding:10px;
+}
+.flow .step .body{padding:24px 22px 28px}
+.flow .step .n{
+  font-size:12px;font-weight:bold;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--gold);margin-bottom:14px;
+}
+.flow .step p{font-size:17px;line-height:1.4;color:var(--text);font-weight:bold}
+.flow .arrow{
+  flex:0 0 52px;display:flex;align-items:center;justify-content:center;color:var(--red);
+}
+.flow .arrow svg{width:20px;height:20px;display:block}
+
+/* ---------- FORMÁTY ---------- */
+.formats{display:flex;flex-direction:column;gap:2px;background:var(--line)}
+.fmt{background:var(--bg2);padding:32px 34px 36px}
+.fmt-head{display:flex;align-items:center;flex-wrap:wrap;gap:14px;margin-bottom:24px}
+.fmt-head h3{font-size:clamp(20px,2.4vw,26px);margin:0}
+.badge{
+  font-size:11px;font-weight:bold;letter-spacing:.14em;text-transform:uppercase;
+  padding:5px 11px;background:var(--red);color:#fff;
+}
+.badge.alt{background:none;color:var(--gold);border:1px solid var(--gold);padding:4px 10px}
+.badge.min{background:none;color:var(--muted);border:1px solid var(--line);padding:4px 10px}
+
+.opts{display:flex;align-items:stretch}
+.opt{
+  flex:1 1 0;min-width:0;background:var(--bg4);border:1px solid var(--line);
+  padding:36px 24px 28px;
+  display:flex;flex-direction:column;justify-content:center;
+  gap:12px;text-align:center;cursor:pointer;position:relative;
+  transition:border-color .15s ease,background .15s ease;
+}
+.opt:hover{border-color:var(--gold);background:#3B3A32}
+.opt:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.opt.selected{border-color:var(--red);background:#3A2A24}
+.opt p{font-size:16px;line-height:1.4;color:var(--text);font-weight:bold}
+
+/* Zaškrtávátko v pravém horním rohu — jediné, co rámeček dělá, je předvolba ve formuláři. */
+.pick{
+  position:absolute;top:12px;right:14px;
+  display:flex;align-items:center;gap:7px;
+  font-size:11px;font-weight:bold;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--muted);transition:color .15s ease;
+}
+/* Buď výzva „Vybrat", nebo — po výběru — zaškrtnuté kolečko. Nikdy oboje. */
+.pick i{
+  width:14px;height:14px;display:none;position:relative;border-radius:50%;
+  border:1px solid var(--red);background:var(--red);
+}
+.opt:hover .pick,.loc:hover .pick{color:var(--text)}
+.selected .pick .pick-t{display:none}
+.selected .pick i{display:block}
+.selected .pick i::after{
+  content:"";position:absolute;left:4.5px;top:1px;width:3px;height:6px;
+  border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg);
+}
+
+@keyframes fz-flash{0%,100%{border-color:var(--line)}30%{border-color:var(--red)}}
+.flash{animation:fz-flash 1.1s ease 2}
+.opt .plus{
+  font-size:11px;font-weight:bold;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);
+}
+.sep{
+  flex:0 0 78px;display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:bold;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);
+}
+.gap{flex:0 0 20px}
+
+/* ---------- KDE / PRO KOHO ---------- */
+.two{display:grid;grid-template-columns:repeat(2,1fr);gap:2px;background:var(--line)}
+.two > div{background:var(--bg2);padding:34px 30px}
+.two p{color:var(--muted);font-size:16px}
+.two p + p{margin-top:14px}
+.two .label{font-size:12px;font-weight:bold;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);margin-bottom:12px}
+.two .head{display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:12px}
+.two .head .label{margin-bottom:0}
+.two.three{grid-template-columns:repeat(3,1fr)}
+.loc{position:relative;cursor:pointer;transition:background .15s ease,box-shadow .15s ease}
+.loc:hover{background:var(--bg3)}
+.loc:focus-visible{outline:2px solid var(--gold);outline-offset:-2px}
+.loc.selected{background:#2E211C;box-shadow:inset 0 0 0 1px var(--red)}
+
+/* ---------- LEKTOR ---------- */
+.bio{display:grid;grid-template-columns:1fr 2fr;gap:44px;align-items:start}
+.bio-photo{
+  width:100%;max-width:371px;height:auto;   /* zdroj je 800×800, čtverec drží sám */
+  border:1px solid var(--line);background:var(--bg2);
+}
+.bio p{color:var(--muted);margin-bottom:16px;max-width:62ch}
+.bio p.first{color:var(--text);font-size:19px}
+.bio strong{color:var(--text);font-weight:bold}
+
+/* ---------- FORM ---------- */
+#poptavka{background:var(--bg2)}
+.form-grid{display:grid;grid-template-columns:.85fr 1.15fr;gap:56px;align-items:start}
+.form-side p{color:var(--muted);font-size:16px;margin-bottom:14px}
+.form-side ul{list-style:none;margin-top:22px}
+.form-side li{font-size:15px;color:var(--muted);padding:7px 0 7px 22px;position:relative}
+.form-side li::before{content:"";position:absolute;left:0;top:16px;width:8px;height:2px;background:var(--gold)}
+
+.field{margin-bottom:22px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+label{display:block;font-size:13px;font-weight:bold;letter-spacing:.1em;text-transform:uppercase;color:var(--text);margin-bottom:9px}
+label .req{color:var(--red)}
+label .hint{font-weight:normal;letter-spacing:0;text-transform:none;color:var(--muted)}
+input[type=text],input[type=tel],input[type=email],select,textarea{
+  width:100%;background:var(--bg);color:var(--text);border:1px solid var(--line);
+  padding:13px 14px;font-family:inherit;font-size:16px;border-radius:0;
+  transition:border-color .15s ease;
+}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--gold)}
+textarea{min-height:96px;resize:vertical}
+select{appearance:none;-webkit-appearance:none;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='9'><path d='M1 1l6 6 6-6' stroke='%238A857C' stroke-width='2' fill='none'/></svg>");
+  background-repeat:no-repeat;background-position:right 14px center;padding-right:40px}
+
+.choices{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.choice{position:relative;margin:0;display:flex}
+.choice input{position:absolute;opacity:0;pointer-events:none}
+.choice span{
+  flex:1;display:flex;align-items:center;
+  border:1px solid var(--line);padding:13px 15px;font-size:15px;cursor:pointer;
+  color:var(--muted);transition:all .15s ease;font-weight:normal;letter-spacing:0;text-transform:none;
+}
+.choice input:checked + span{border-color:var(--gold);color:var(--text);background:rgba(200,169,106,.12)}
+.choice span:hover{border-color:var(--muted)}
+.choice input:focus-visible + span{outline:2px solid var(--gold);outline-offset:2px}
+
+/* Cihlová má na stránce jediný význam ve formuláři: tady něco chybí. */
+.field.invalid input[type=text],.field.invalid input[type=tel],
+.field.invalid input[type=email],.field.invalid textarea{border-color:var(--red)}
+.field.invalid .choice span{border-color:var(--red)}
+.field.invalid .choice input:checked + span{border-color:var(--gold)}
+.field.invalid > label{color:var(--red)}
+
+.consent{font-size:13px;color:var(--muted);line-height:1.5;margin:6px 0 22px}
+.form-msg{padding:16px 18px;border:1px solid var(--line);font-size:16px;margin-top:18px;display:none}
+.form-msg.ok{display:block;border-color:var(--gold);color:var(--text)}
+.form-msg.err{display:block;border-color:var(--red);color:var(--text)}
+button[type=submit]{width:100%}
+button[disabled]{opacity:.55;cursor:default}
+
+footer{padding:40px 0 56px;border-top:1px solid var(--line);color:var(--muted);font-size:14px}
+footer .wrap{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap}
+.foot-name{color:var(--text);font-weight:bold;margin-bottom:4px}
+.foot-kontakt{display:flex;flex-direction:column;gap:4px;text-align:right}
+.foot-firma{margin-top:6px;font-size:13px}
+
+@media (max-width:900px){
+  section{padding:60px 0}
+  .hero{padding:44px 0 60px}
+  .hero-grid,.bio,.form-grid{grid-template-columns:1fr;gap:36px}
+  .two,.two.three,.choices,.row2{grid-template-columns:1fr}
+  .fmt{padding:26px 22px 28px}
+  .opts{flex-direction:column}
+  .opt{flex:0 0 auto;width:100%;max-width:371px;margin-left:auto;margin-right:auto}
+  .sep{flex:0 0 46px}
+  .gap{flex:0 0 12px}
+  .flow{flex-direction:column}
+  .flow .step{flex:0 0 auto;width:100%;max-width:371px;margin-left:auto;margin-right:auto}
+  .flow .arrow{flex:0 0 44px;transform:rotate(90deg)}
+  .bio-photo{margin-left:auto;margin-right:auto}
+  .btn{width:100%;text-align:center}
+  .foot-kontakt{text-align:left}
+}
+@media (max-width:620px){
+  body{font-size:16px}
+}
+</style>
+</head>
+<body>
+
+<!-- ===================== HERO ===================== -->
+<header class="hero">
+  <div class="wrap">
+    <div class="hero-grid">
+      <div>
+        <div class="eyebrow">Školení na míru · u vás nebo u nás v Praze</div>
+        <h1>Navrhujte ozvučovací systémy <span class="accent">pořádně.</span></h1>
+        <p class="lead">Jednodenní až třídenní školení návrhu, měření a nastavení ozvučovacích systémů. Témata přesně taková, která váš tým potřebuje — na vaší vlastní technice nebo na d&amp;b audiotechnik v demoroomu v Praze.</p>
+        <a href="#poptavka" class="btn">Nezávazně poptat termín</a>
+        <span class="btn-note">Ozvu se do dvou pracovních dnů s návrhem programu a cenovou nabídkou.</span>
+      </div>
+
+      <figure class="hero-img">
+        <svg class="fz" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 311.76 311.76" role="img" aria-labelledby="fz-title fz-desc">
+          <title id="fz-title">Interakce zdrojů line arraye pro posluchače mimo osu</title>
+          <desc id="fz-desc">Svislý array sedmi zdrojů a posluchač mimo osu. Fresnelovy zóny se středem v posluchači ukazují, kde se příspěvky jednotlivých zdrojů sčítají a kde odečítají.</desc>
+
+          <!-- 1 · Fresnelovy zony - pasma souctu a odectu -->
+          <g class="fz-layer" id="fz-zones" data-step="1">
+            <path fill="#57A05E" stroke="none" fill-opacity="0.12941" fill-rule="evenodd" d="M71.95 212.91L74.76 205.5L78.17 197.57L81.6 190.43L85.31 183.45L88.93 177.22L93.97 169.34L98.52 162.86L103.33 156.58L107.46 151.58L113.2 145.14L119.74 138.45L124.98 133.53L132.06 127.41L138.27 122.5L145.86 117.04L151.26 113.47L157.4 109.71L163.66 106.19L170.71 102.58L178.54 98.96L187.21 95.45L194.66 92.8L203.6 90.05L210.56 88.23L218.28 86.52L226.07 85.13L233.91 84.05L242.5 83.25L249.69 82.86L259.03 82.75L266.23 82.96L274.83 83.57L272.25 111.36L264.87 110.82L256.84 110.62L250.06 110.75L241.43 111.31L233.47 112.23L224.95 113.64L217.1 115.34L209.95 117.24L202.29 119.66L194.77 122.43L186.27 126.06L179.6 129.31L173.1 132.85L165.19 137.66L159.57 141.47L152.64 146.64L148.8 149.75L143.69 154.2L139.63 158L134.85 162.82L130.67 167.37L126.66 172.07L123.21 176.41L119.9 180.88L116.73 185.45L113.72 190.11L110.86 194.88L107.31 201.39L104.56 206.91L102.51 211.41L100.36 216.54L98.18 222.31Z"/>
+            <path fill="#C0392B" stroke="none" fill-opacity="0.12941" fill-rule="evenodd" d="M46.04 203.54L49.25 195.08L52.79 186.76L57.04 177.84L61.26 169.85L66.23 161.32L70.66 154.4L75.82 146.98L81.78 139.12L87 132.79L93.01 126.04L99.29 119.55L106.42 112.76L113.21 106.82L119.6 101.66L128.16 95.32L135.64 90.27L142.61 85.95L150.45 81.5L159.21 77.01L168.14 72.91L176.48 69.51L185.74 66.18L194.33 63.49L202.25 61.35L211.82 59.18L219.87 57.69L229.59 56.29L238.55 55.39L248.37 54.82L257.37 54.68L266.38 54.91L276.99 55.65L274.42 83.46L265.12 82.8L255.8 82.61L247.92 82.79L237.91 83.48L227.95 84.68L220.17 85.99L212.45 87.61L203.42 89.93L198.61 91.36L193.15 93.14L184.41 96.38L175.82 100.03L168.07 103.76L161.11 107.48L153.07 112.23L145.87 116.96L137.73 122.88L131.56 127.8L127.2 131.55L122.95 135.41L116.79 141.45L112.34 146.16L107.59 151.55L103.04 157.12L98.69 162.84L94.95 168.14L91.02 174.16L87.29 180.32L83.8 186.62L80.86 192.39L77.81 198.92L74.73 206.21L72.2 212.96Z"/>
+            <path fill="#57A05E" stroke="none" fill-opacity="0.12941" fill-rule="evenodd" d="M31.66 165.15L35.98 157.01L41.07 148.25L46.52 139.69L51.23 132.86L57.29 124.72L62.49 118.26L68.52 111.27L74.79 104.52L80.65 98.63L88.07 91.71L96.48 84.5L103.72 78.79L111.16 73.34L118.81 68.17L127.43 62.8L134.64 58.68L142.81 54.37L151.12 50.36L159.59 46.66L169.05 42.96L177.76 39.92L186.6 37.2L194.62 35.03L205.42 32.55L214.5 30.86L224.56 29.37L232.82 28.45L242.95 27.7L251.26 27.39L260.5 27.37L269.73 27.69L279.86 28.42L277.29 56.1L268.26 55.44L258.41 55.14L249.38 55.25L238.71 55.84L229.72 56.73L219.96 58.12L211.08 59.77L201.46 61.98L191.96 64.6L183.36 67.37L174.12 70.79L165.78 74.26L157.59 78.08L148.84 82.61L141 87.09L131.99 92.8L125.9 97L120.62 100.89L113.54 106.5L107.93 111.29L103.07 115.71L97.19 121.43L92.63 126.15L88.22 131.01L83.43 136.62L79.83 141.1L75.38 146.99L71.59 152.34L67.95 157.8L63.64 164.77L59.98 171.18L56.53 177.7Z"/>
+            <path fill="#57A05E" stroke="none" fill-opacity="0.12941" fill-rule="evenodd" d="M31.66 112.29L37.28 104.99L43.14 97.88L48.55 91.74L54.14 85.74L59.89 79.92L66.58 73.57L74.25 66.78L81.36 60.9L88.66 55.27L95.31 50.46L103.81 44.73L111.63 39.84L118.73 35.71L127.76 30.84L135.11 27.18L142.56 23.74L153.96 49.05L148.91 51.36L140.63 55.45L132.5 59.83L126.11 63.55L119.84 67.46L112.92 72.07L106.91 76.35L98.85 82.52L93.15 87.21L86.22 93.3L80.18 98.99L74.98 104.22L69.93 109.59L63.84 116.52L58.59 122.93L54.1 128.78Z"/>
+            <path fill="#C0392B" stroke="none" fill-opacity="0.12941" fill-rule="evenodd" d="M31.66 68.84L37.09 63.16L44.29 56.07L50.88 49.97L57.65 44.05L64.59 38.36L71.7 32.86L77.12 28.87L84.5 23.74L100 46.75L93.3 51.42L87.54 55.66L81.1 60.68L74.8 65.9L67.91 71.97L62.7 76.86L57.6 81.88L51.94 87.77Z"/>
+            <path fill="#57A05E" stroke="none" fill-opacity="0.12941" fill-rule="evenodd" d="M32.38 29.46L38.82 23.74L56.84 45.12L50.92 50.36Z"/>
+          </g>
+
+          <!-- 2 · hranice zon -->
+          <g class="fz-layer" id="fz-boundaries" data-step="2">
+            <path fill="none" stroke="#C8A96A" stroke-width="0.50002" stroke-opacity="1" stroke-dasharray="2.0001,1.5" d="M98.2 222.67L100.71 216.1L103.34 209.98L106.21 203.97L110.04 196.79L113.81 190.42L117.45 184.84L121.3 179.4L125.6 173.84L130.13 168.46L134.37 163.8L139.04 159.06L144.46 154L149.79 149.43L155.32 145.08L161.03 140.96L166.58 137.29L171.97 134.02L178.11 130.61L185.41 126.98L191.16 124.43L198.39 121.57L204.33 119.5L209.64 117.86L217.15 115.86L224.03 114.35L230.96 113.13L237.57 112.24L244.94 111.56L250.86 111.25L258.63 111.16L264.55 111.34L272.31 111.87"/>
+            <path fill="none" stroke="#C8A96A" stroke-width="0.50002" stroke-opacity="1" stroke-dasharray="2.0001,1.5" d="M72.3 213.32L75.39 205.24L78.47 198.11L81.83 191.09L85.88 183.47L89.59 177.12L93.77 170.57L98.97 163.14L103.96 156.63L109.5 150.02L115.34 143.64L121.14 137.83L126.84 132.56L133.09 127.24L138.17 123.23L144.8 118.4L151.98 113.61L159.38 109.14L165.8 105.62L173.54 101.76L179.83 98.93L186.23 96.32L194.34 93.39L201.34 91.17L210.5 88.69L218.5 86.91L227 85.4L235.56 84.27L242.43 83.64L250.62 83.2L259.25 83.11L266.59 83.32L275.19 83.95"/>
+            <path fill="none" stroke="#C8A96A" stroke-width="0.50002" stroke-opacity="1" stroke-dasharray="2.0001,1.5" d="M46.4 203.96L49.92 194.73L53.22 187.02L57.25 178.55L61.62 170.26L65.82 163L71.11 154.67L76.46 146.98L82.44 139.13L88.11 132.31L94.71 124.99L100.22 119.36L107.02 112.92L114.08 106.78L122.55 100.04L129.33 95.12L136.27 90.47L144.24 85.57L152.83 80.79L160.3 77.02L169.25 72.95L178.83 69.12L187.64 66.03L196.11 63.45L204.19 61.32L212.82 59.4L222.01 57.75L230.28 56.61L240.05 55.66L249.87 55.14L259.2 55.05L269.02 55.38L277.35 56.01"/>
+            <path fill="none" stroke="#C8A96A" stroke-width="0.50002" stroke-opacity="1" stroke-dasharray="2.0001,1.5" d="M32.02 165.83L36.68 157.04L41.69 148.44L46.73 140.5L51.1 134.12L56.67 126.54L62.52 119.18L69.39 111.21L75.8 104.34L82.87 97.32L89.39 91.33L96.53 85.21L103.9 79.37L111.04 74.12L118.35 69.12L126.78 63.82L134.94 59.12L142.27 55.23L151.23 50.88L159.86 47.09L168.61 43.64L177.49 40.51L185.96 37.87L196.11 35.12L204.2 33.25L214 31.37L222.75 30.02L233.21 28.81L241.49 28.17L250.9 27.77L260.32 27.72L268.63 27.97L280.22 28.78"/>
+            <path fill="none" stroke="#C8A96A" stroke-width="0.50002" stroke-opacity="1" stroke-dasharray="2.0001,1.5" d="M32.02 113.31L36.84 106.93L42.25 100.21L47.85 93.67L54.07 86.85L60.52 80.25L67.18 73.86L74.04 67.7L80.63 62.15L87.38 56.82L94.79 51.33L102.37 46.11L110.13 41.12L117.51 36.7L126.1 31.95L133.21 28.3L142.09 24.1"/>
+            <path fill="none" stroke="#C8A96A" stroke-width="0.50002" stroke-opacity="1" stroke-dasharray="2.0001,1.5" d="M32.02 69.43L37.61 63.59L43.84 57.44L50.75 51.01L56.82 45.68L63.56 40.08L71.53 33.86L78.05 29.09L85.25 24.1"/>
+            <path fill="none" stroke="#C8A96A" stroke-width="0.50002" stroke-opacity="1" stroke-dasharray="2.0001,1.5" d="M32.02 30.58L39.21 24.1"/>
+          </g>
+
+          <!-- 3 · znamenka + a - -->
+          <g class="fz-layer" id="fz-signs" data-step="3">
+            <path transform="translate(121.69 157.96)" fill="#C8A96A" d="M3.25 -1.5L3.25 -4.06L0.72 -4.06L0.72 -5.12L3.25 -5.12L3.25 -7.66L4.33 -7.66L4.33 -5.12L6.88 -5.12L6.88 -4.06L4.33 -4.06L4.33 -1.5Z"/>
+            <path transform="translate(101.56 138.6)" fill="#C8A96A" d="M6.86 -4.05L0.72 -4.05L0.72 -5.11L6.86 -5.11Z"/>
+            <path transform="translate(81.45 119.26)" fill="#C8A96A" d="M3.25 -1.5L3.25 -4.05L0.72 -4.05L0.72 -5.11L3.25 -5.11L3.25 -7.64L4.33 -7.64L4.33 -5.11L6.86 -5.11L6.86 -4.05L4.33 -4.05L4.33 -1.5Z"/>
+            <path transform="translate(61.33 99.88)" fill="#C8A96A" d="M3.25 -1.5L3.25 -4.05L0.72 -4.05L0.72 -5.11L3.25 -5.11L3.25 -7.64L4.33 -7.64L4.33 -5.11L6.86 -5.11L6.86 -4.05L4.33 -4.05L4.33 -1.5Z"/>
+            <path transform="translate(41.21 80.53)" fill="#C8A96A" d="M6.86 -4.05L0.72 -4.05L0.72 -5.11L6.86 -5.11Z"/>
+          </g>
+
+          <!-- 4 · meritko vlnove delky -->
+          <g class="fz-layer" id="fz-lambda" data-step="4">
+            <path fill="#8A857C" stroke="none" fill-opacity="1" d="M117.73 175.8L58.74 131.81L59.34 131.01L118.33 175ZM119.03 172.4L122.04 178.39L115.44 177.2ZM58.05 134.41L55.04 128.42L61.64 129.6Z"/>
+            <path transform="translate(65.42 163.14)" fill="#8A857C" d="M4.12 -8.77L5.48 0L4.39 0L3.66 -4.98L0.78 0L-0.31 0L3.44 -6.36L3.03 -8.77Z"/>
+          </g>
+
+          <!-- 5 · vyrez, vodici cary, osa -->
+          <g class="fz-layer" id="fz-frame" data-step="5">
+            <path fill="none" stroke="#45423C" stroke-width="1" stroke-opacity="1" d="M72.3 69.43L144.25 14.75"/>
+            <path fill="none" stroke="#45423C" stroke-width="1" stroke-opacity="1" d="M72.3 99.64L144.25 154.32"/>
+            <path fill="none" stroke="#45423C" stroke-width="0.75002" stroke-opacity="1" d="M144.25 14.75L144.25 154.32"/>
+            <path fill="none" stroke="#45423C" stroke-width="1" stroke-opacity="1" d="M35.61 108.28L72.3 108.28L72.3 60.79L35.61 60.79Z"/>
+            <path fill="none" stroke="#45423C" stroke-width="1" stroke-opacity="1" d="M72.3 69.43L72.3 99.64"/>
+          </g>
+
+          <!-- 6 · drahy zdroju k posluchaci -->
+          <g class="fz-layer" id="fz-rays" data-step="6">
+            <path fill="none" stroke="#C0392B" stroke-width="1" stroke-opacity="1" d="M144.25 24.82L234.23 279.34"/>
+            <path fill="none" stroke="#2471A3" stroke-width="1" stroke-opacity="1" d="M144.25 144.25L234.23 279.37"/>
+            <path fill="none" stroke="#8A857C" stroke-width="0.50002" stroke-opacity="1" stroke-dasharray="2.0001,1.5" d="M144.25 44.96L234.23 279.59"/>
+            <path fill="none" stroke="#8A857C" stroke-width="0.50002" stroke-opacity="1" stroke-dasharray="2.0001,1.5" d="M144.25 64.39L234.23 279.11"/>
+            <path fill="none" stroke="#8A857C" stroke-width="0.50002" stroke-opacity="1" stroke-dasharray="2.0001,1.5" d="M144.25 84.54L234.23 279.36"/>
+            <path fill="none" stroke="#8A857C" stroke-width="0.50002" stroke-opacity="1" stroke-dasharray="2.0001,1.5" d="M144.25 104.68L234.23 279.6"/>
+            <path fill="none" stroke="#8A857C" stroke-width="0.50002" stroke-opacity="1" stroke-dasharray="2.0001,1.5" d="M144.25 124.11L234.23 279.12"/>
+          </g>
+
+          <!-- 7 · array sedmi zdroju -->
+          <g class="fz-layer" id="fz-array" data-step="7">
+            <path fill="none" stroke="#8A857C" stroke-width="1" stroke-opacity="1" d="M134.18 154.32L154.32 154.32L154.32 14.75L134.18 14.75Z"/>
+            <path fill="none" stroke="#C0392B" stroke-width="1.5" stroke-opacity="1" d="M135.26 24.46C135.26 19.7 139.12 15.83 143.89 15.83C148.66 15.83 152.52 19.7 152.52 24.46C152.52 29.23 148.66 33.09 143.89 33.09C139.12 33.09 135.26 29.23 135.26 24.46ZM135.26 24.46"/>
+            <path fill="none" stroke="#8A857C" stroke-width="0.75002" stroke-opacity="1" d="M135.62 44.61C135.62 40.04 139.48 36.33 144.25 36.33C149.02 36.33 152.88 40.04 152.88 44.61C152.88 49.17 149.02 52.88 144.25 52.88C139.48 52.88 135.62 49.17 135.62 44.61ZM135.62 44.61"/>
+            <path fill="none" stroke="#8A857C" stroke-width="0.75002" stroke-opacity="1" d="M135.62 64.39C135.62 59.62 139.48 55.76 144.25 55.76C149.02 55.76 152.88 59.62 152.88 64.39C152.88 69.16 149.02 73.02 144.25 73.02C139.48 73.02 135.62 69.16 135.62 64.39ZM135.62 64.39"/>
+            <path fill="none" stroke="#8A857C" stroke-width="0.75002" stroke-opacity="1" d="M135.62 84.54C135.62 79.77 139.48 75.9 144.25 75.9C149.02 75.9 152.88 79.77 152.88 84.54C152.88 89.3 149.02 93.17 144.25 93.17C139.48 93.17 135.62 89.3 135.62 84.54ZM135.62 84.54"/>
+            <path fill="none" stroke="#8A857C" stroke-width="0.75002" stroke-opacity="1" d="M135.62 104.32C135.62 99.75 139.48 96.05 144.25 96.05C149.02 96.05 152.88 99.75 152.88 104.32C152.88 108.89 149.02 112.59 144.25 112.59C139.48 112.59 135.62 108.89 135.62 104.32ZM135.62 104.32"/>
+            <path fill="none" stroke="#8A857C" stroke-width="0.75002" stroke-opacity="1" d="M135.62 124.11C135.62 119.34 139.48 115.47 144.25 115.47C149.02 115.47 152.88 119.34 152.88 124.11C152.88 128.87 149.02 132.74 144.25 132.74C139.48 132.74 135.62 128.87 135.62 124.11ZM135.62 124.11"/>
+            <path fill="none" stroke="#C0392B" stroke-width="1.5" stroke-opacity="1" d="M135.26 143.89C135.26 139.12 139.12 135.26 143.89 135.26C148.66 135.26 152.52 139.12 152.52 143.89C152.52 148.66 148.66 152.52 143.89 152.52C139.12 152.52 135.26 148.66 135.26 143.89ZM135.26 143.89"/>
+          </g>
+
+          <!-- 8 · posluchac -->
+          <g class="fz-layer" id="fz-listener" data-step="8">
+            <path fill="none" stroke="#E8E4DB" stroke-width="1" stroke-opacity="1" d="M238.5 279.14C238.5 269.01 246.71 260.8 256.84 260.8C266.97 260.8 275.19 269.01 275.19 279.14C275.19 289.28 266.97 297.49 256.84 297.49C246.71 297.49 238.5 289.28 238.5 279.14ZM238.5 279.14"/>
+            <path fill="none" stroke="#E8E4DB" stroke-width="1" stroke-opacity="1" d="M234.9 279.14C234.9 274.97 238.45 271.59 242.81 271.59C247.18 271.59 250.73 274.97 250.73 279.14C250.73 283.32 247.18 286.7 242.81 286.7C238.45 286.7 234.9 283.32 234.9 279.14ZM234.9 279.14"/>
+            <path fill="none" stroke="#E8E4DB" stroke-width="0.75002" stroke-opacity="1" d="M239.93 279.14C239.93 277.75 241.22 276.63 242.81 276.63C244.4 276.63 245.69 277.75 245.69 279.14C245.69 280.54 244.4 281.66 242.81 281.66C241.22 281.66 239.93 280.54 239.93 279.14ZM239.93 279.14"/>
+          </g>
+        </svg>
+      </figure>
+    </div>
+  </div>
+</header>
+
+<!-- ===================== POSTUP ===================== -->
+<section>
+  <div class="wrap">
+    <div class="sec-intro">
+      <div class="eyebrow">Jak se navrhuje ozvučovací systém?</div>
+      <h2>Postup návrhu</h2>
+    </div>
+
+    <div class="flow">
+      <div class="step">
+        <img src="img/krok-1.jpg" alt="Simulační model sálu v návrhovém softwaru" loading="lazy">
+        <div class="body">
+          <div class="n">Krok 01</div>
+          <p>Prohlídka venue a zpracování simulačního modelu</p>
+        </div>
+      </div>
+      <div class="arrow" aria-hidden="true"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 10h13M11 5l5 5-5 5"/></svg></div>
+      <div class="step">
+        <img src="img/krok-2.jpg" alt="Line array a subwoofery — volba systému z produktové řady" loading="lazy">
+        <div class="body">
+          <div class="n">Krok 02</div>
+          <p>Volba systému podle teorie zvukových systémů</p>
+        </div>
+      </div>
+      <div class="arrow" aria-hidden="true"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 10h13M11 5l5 5-5 5"/></svg></div>
+      <div class="step">
+        <img src="img/krok-3.jpg" alt="Profil nasměrování arraye a průběh hladiny se vzdáleností" loading="lazy">
+        <div class="body">
+          <div class="n">Krok 03</div>
+          <p>Design systému, úhlování, výška, směřování</p>
+        </div>
+      </div>
+      <div class="arrow" aria-hidden="true"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 10h13M11 5l5 5-5 5"/></svg></div>
+      <div class="step">
+        <img src="img/krok-4.jpg" alt="Naměřená magnituda a fáze systému" loading="lazy">
+        <div class="body">
+          <div class="n">Krok 04</div>
+          <p>Měření a optimalizace systému napříč venue</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== VARIANTY ===================== -->
+<section>
+  <div class="wrap">
+    <div class="sec-intro">
+      <div class="eyebrow">Formáty školení</div>
+      <h2>Vyberte rozsah, program doladíme</h2>
+      <p class="lead">Níže jsou nejčastější kombinace — okruhy se dají posunout podle toho, co váš tým reálně potřebuje.</p>
+    </div>
+
+    <div class="formats">
+      <article class="fmt">
+        <div class="fmt-head">
+          <h3>Jednodenní školení</h3>
+          <span class="badge min">Minimum</span>
+        </div>
+        <div class="opts">
+        <div class="opt" role="button" tabindex="0" aria-pressed="false" data-rozsah="Jednodenní školení" data-tema="Teorie návrhu a akustika zvukových systémů" aria-label="Předvyplnit poptávku: Jednodenní školení · Teorie návrhu a akustika zvukových systémů">
+          <p>Teorie návrhu ozvučení</p>
+          <p>Distribuovaný systém</p>
+          <span class="pick"><span class="pick-t">Vybrat</span><i aria-hidden="true"></i></span>
+        </div>
+        <div class="sep">nebo</div>
+        <div class="opt" role="button" tabindex="0" aria-pressed="false" data-rozsah="Jednodenní školení" data-tema="Line array design|Sub array design" aria-label="Předvyplnit poptávku: Jednodenní školení · Line array design, Sub array design">
+          <p>Line array design</p>
+          <p>Sub array design</p>
+          <span class="pick"><span class="pick-t">Vybrat</span><i aria-hidden="true"></i></span>
+        </div>
+        <div class="sep">nebo</div>
+        <div class="opt" role="button" tabindex="0" aria-pressed="false" data-rozsah="Jednodenní školení" data-tema="Měření a optimalizace systému" aria-label="Předvyplnit poptávku: Jednodenní školení · Měření a optimalizace systému">
+          <p>Měření a optimalizace zvukového systému</p>
+          <span class="pick"><span class="pick-t">Vybrat</span><i aria-hidden="true"></i></span>
+        </div>
+        </div>
+      </article>
+      <article class="fmt">
+        <div class="fmt-head">
+          <h3>Dvoudenní školení</h3>
+          <span class="badge">Doporučujeme</span>
+        </div>
+        <div class="opts">
+        <div class="opt" role="button" tabindex="0" aria-pressed="false" data-rozsah="Dvoudenní školení" data-tema="Teorie návrhu a akustika zvukových systémů|Line array design|Sub array design" aria-label="Předvyplnit poptávku: Dvoudenní školení · Teorie návrhu a akustika zvukových systémů, Line array design, Sub array design">
+          <p>Teorie návrhu a distribuovaný systém</p>
+          <span class="plus">plus</span>
+          <p>Line array design &amp; Sub array design</p>
+          <span class="pick"><span class="pick-t">Vybrat</span><i aria-hidden="true"></i></span>
+        </div>
+        <div class="sep">nebo</div>
+        <div class="opt" role="button" tabindex="0" aria-pressed="false" data-rozsah="Dvoudenní školení" data-tema="Teorie návrhu a akustika zvukových systémů|Měření a optimalizace systému" aria-label="Předvyplnit poptávku: Dvoudenní školení · Teorie návrhu a akustika zvukových systémů, Měření a optimalizace systému">
+          <p>Teorie návrhu a distribuovaný systém</p>
+          <span class="plus">plus</span>
+          <p>Měření a optimalizace systému</p>
+          <span class="pick"><span class="pick-t">Vybrat</span><i aria-hidden="true"></i></span>
+        </div>
+        </div>
+      </article>
+      <article class="fmt">
+        <div class="fmt-head">
+          <h3>Třídenní školení</h3>
+          <span class="badge alt">Komplet od začátku do konce</span>
+        </div>
+        <div class="opts">
+        <div class="opt" role="button" tabindex="0" aria-pressed="false" data-rozsah="Třídenní školení" data-tema="Teorie návrhu a akustika zvukových systémů|Line array design|Sub array design|Měření a optimalizace systému" aria-label="Předvyplnit poptávku: Třídenní školení · Teorie návrhu a akustika zvukových systémů, Line array design, Sub array design, Měření a optimalizace systému">
+          <p>Teorie návrhu a distribuovaný systém</p>
+          <span class="plus">plus</span>
+          <p>Line array design &amp; Sub array design</p>
+          <span class="plus">plus</span>
+          <p>Měření a optimalizace systému</p>
+          <span class="pick"><span class="pick-t">Vybrat</span><i aria-hidden="true"></i></span>
+        </div>
+        </div>
+      </article>
+      <article class="fmt">
+        <div class="fmt-head">
+          <h3>Na míru</h3>
+          <span class="badge min">Nejflexibilnější</span>
+        </div>
+        <div class="opts">
+        <div class="opt" role="button" tabindex="0" aria-pressed="false" data-rozsah="Na míru" aria-label="Předvyplnit poptávku: Na míru">
+          <p>Jakékoli téma upravené dle vašich potřeb nebo vybavení</p>
+          <span class="pick"><span class="pick-t">Vybrat</span><i aria-hidden="true"></i></span>
+        </div>
+        <div class="gap"></div>
+        <div class="opt" role="button" tabindex="0" aria-pressed="false" data-rozsah="Na míru" data-misto="Online" aria-label="Předvyplnit poptávku: Na míru">
+          <p>Jste z daleka? Všechna témata umíme nabídnout i jako online školení</p>
+          <span class="pick"><span class="pick-t">Vybrat</span><i aria-hidden="true"></i></span>
+        </div>
+        </div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== PRO KOHO ===================== -->
+<section>
+  <div class="wrap">
+    <div class="sec-intro">
+      <div class="eyebrow">Pro koho</div>
+      <h2>Pro týmy i pro jednotlivce</h2>
+    </div>
+
+    <div class="two">
+      <div>
+        <div class="head">
+          <div class="label">Firmy</div>
+          <span class="badge min">Společně v týmu</span>
+        </div>
+        <h3>Rentálky, integrátoři, produkce, divadla</h3>
+        <p>Sjednotíte v týmu postupy i slovník. Školení se dá vést rovnou nad projekty, které máte rozdělané nebo čerstvě za sebou.</p>
+        <p>Každý si odnese něco jiného. Zvukař řemeslo. Produkční pochopení toho, co po něm zvukaři chtějí, a argumenty na koordinační schůzky. Majitel představu, kam vybavení dál posouvat.</p>
+      </div>
+      <div>
+        <div class="head">
+          <div class="label">Jednotlivci</div>
+          <span class="badge">Nejefektivnější</span>
+        </div>
+        <h3>Zvukaři a systémáci</h3>
+        <p>Intenzivní výuka, jeden na jednoho nebo v malé skupině. Řeší se vaše otázky a vaše bedny, ne jen obecné příklady. Tempo držíte vy.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== KDE ===================== -->
+<section>
+  <div class="wrap">
+    <div class="sec-intro">
+      <div class="eyebrow">Kde a s čím</div>
+      <h2>Na vaší technice nebo u nás v Praze</h2>
+    </div>
+
+    <div class="two three">
+      <div class="loc" role="button" tabindex="0" aria-pressed="false" data-misto="U nás, na naší technice" aria-label="Předvyplnit poptávku: školení u vás, na vaší technice">
+        <div class="label">Varianta A</div>
+        <h3>Přijedu za vámi</h3>
+        <p>Ve vašem skladu, ve vašich prostorách. Pracujeme s bednami a vybavením, se kterým jezdíte a které znáte. Simulace i měření probíhají na vašem vybavení a vašich presetech. Nejlepší varianta pro firemní zákazníky a týmy.</p>
+        <span class="pick"><span class="pick-t">Vybrat</span><i aria-hidden="true"></i></span>
+      </div>
+      <div class="loc" role="button" tabindex="0" aria-pressed="false" data-misto="Demoroom d&amp;b v Praze" aria-label="Předvyplnit poptávku: školení v demoroomu d&amp;b v Praze">
+        <div class="label">Varianta B</div>
+        <h3>Demoroom d&amp;b audiotechnik v Praze</h3>
+        <p>Zázemí demoroomu s top technikou. Nemusíte vlastnit techniku na to, abyste se jí naučili používat a ovládat. Ideální pro jednotlivce, menší skupinky, ale i pro firemní týmy, které si chtějí udělat teambuilding jinde než u nich na skladě.</p>
+        <span class="pick"><span class="pick-t">Vybrat</span><i aria-hidden="true"></i></span>
+      </div>
+      <div class="loc" role="button" tabindex="0" aria-pressed="false" data-misto="Online" aria-label="Předvyplnit poptávku: online školení">
+        <div class="label">Varianta C</div>
+        <h3>Online školení</h3>
+        <p>Naplánujeme videohovor, jeden na jednoho nebo v malé skupině. Dobrá volba, když jste z daleka nebo chcete začít dřív, než se potkáme naživo. Teorie není problém, simulační software také ne. Měření si můžeme ukázat a diskutovat o něm.</p>
+        <span class="pick"><span class="pick-t">Vybrat</span><i aria-hidden="true"></i></span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== LEKTOR ===================== -->
+<section>
+  <div class="wrap">
+    <div class="sec-intro">
+      <div class="eyebrow">Lektor</div>
+      <h2>Vojtěch Panenka</h2>
+    </div>
+
+    <div class="bio">
+      <img src="img/vojtech.webp" alt="Vojtěch Panenka" class="bio-photo" width="800" height="800">
+      <div>
+        <p class="first">Dobrých informací o zvukových systémech je v češtině zoufale málo. Buď jsou příliš obecné, nebo nejsou ničím podložené. To se snažím změnit.</p>
+        <p>Dříve jsem hodně jezdil po eventech a festivalech. Teď mám malé děti, a proto víc projektuju a připravuju kurzy a školení, kde využívám své eventové i projektantské zkušenosti. Učím zvukaře <strong>navrhovat systémy objektivně, pracovat se simulacemi, nehádat. Aby byl systém změřený a dotažený ještě předtím, než se do něj začne míchat hudba.</strong> Nejde mi o to odpřednášet slidy — chci, aby vám principy zůstaly v hlavě i po mém odjezdu. Proto dávám fakta do kontextu a vracím se k nim z různých stran. Funguje to.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== FORMULÁŘ ===================== -->
+<section id="poptavka">
+  <div class="wrap">
+    <div class="form-grid">
+
+      <div class="form-side">
+        <div class="eyebrow">Poptávka</div>
+        <h2>Zajímá mě, co potřebujete</h2>
+        <p>Vyplňte formulář a já se ozvu do dvou pracovních dnů s návrhem programu, termínem a cenou. Nic tím neslibujete.</p>
+        <ul>
+          <li>Cena podle rozsahu, místa a velikosti skupiny</li>
+          <li>Program vždycky doladíme podle vašich potřeb</li>
+          <li>Termíny domlouvám individuálně</li>
+        </ul>
+      </div>
+
+      <div>
+        <form id="lead-form" novalidate>
+
+          <div class="field">
+            <label>Jaká témata vás zajímají? <span class="req">*</span> <span class="hint">můžete vybrat víc</span></label>
+            <div class="choices">
+              <label class="choice"><input type="checkbox" name="tema" value="Teorie návrhu a akustika zvukových systémů"><span>Teorie návrhu a akustika zvukových systémů</span></label>
+              <label class="choice"><input type="checkbox" name="tema" value="Line array design"><span>Line array design</span></label>
+              <label class="choice"><input type="checkbox" name="tema" value="Sub array design"><span>Sub array design</span></label>
+              <label class="choice"><input type="checkbox" name="tema" value="Měření a optimalizace systému"><span>Měření a optimalizace systému</span></label>
+            </div>
+          </div>
+
+          <div class="row2">
+            <div class="field">
+              <label for="varianta">Uvažovaný rozsah</label>
+              <select id="varianta" name="varianta">
+                <option value="">— vyberte —</option>
+                <option>Jednodenní školení</option>
+                <option>Dvoudenní školení</option>
+                <option>Třídenní školení</option>
+                <option>Na míru</option>
+                <option>Zatím nevím, poraďte mi</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="misto">Kde by to mělo být</label>
+              <select id="misto" name="misto">
+                <option value="">— vyberte —</option>
+                <option>U nás, na naší technice</option>
+                <option>Demoroom d&amp;b v Praze</option>
+                <option>Online</option>
+                <option>Je mi to jedno</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="row2">
+            <div class="field">
+              <label for="jmeno">Jméno <span class="req">*</span></label>
+              <input type="text" id="jmeno" name="jmeno" autocomplete="given-name">
+            </div>
+            <div class="field">
+              <label for="prijmeni">Příjmení <span class="req">*</span></label>
+              <input type="text" id="prijmeni" name="prijmeni" autocomplete="family-name">
+            </div>
+          </div>
+
+          <div class="row2">
+            <div class="field">
+              <label for="telefon">Telefon <span class="req">*</span></label>
+              <input type="tel" id="telefon" name="telefon" autocomplete="tel">
+            </div>
+            <div class="field">
+              <label for="email">E-mail <span class="req">*</span></label>
+              <input type="email" id="email" name="email" autocomplete="email">
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="info">Další info</label>
+            <textarea id="info" name="info" placeholder="Kolik vás bude, s jakou technikou pracujete, přibližný termín, co vás nejvíc pálí…"></textarea>
+          </div>
+
+          <p class="consent">Odesláním souhlasíte s tím, že vás budu kontaktovat ohledně vaší poptávky. Údaje nikam dál nepředávám.</p>
+
+          <button type="submit" class="btn" id="submit-btn">Odeslat poptávku</button>
+
+          <div class="form-msg" id="form-msg" role="status" aria-live="polite"></div>
+        </form>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div>
+      <div class="foot-name">Vojtěch Panenka</div>
+      <div>Škola zvuku — školení návrhu ozvučovacích systémů</div>
+    </div>
+    <div class="foot-kontakt">
+      <a href="mailto:info@soundco-ltd.com">info@soundco-ltd.com</a>
+      <a href="tel:+420775511836">+420 775 511 836</a>
+      <div class="foot-firma">soundco-ltd, s.r.o. · IČO 17361796</div>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var FORM_ID = "1FAIpQLScV39jf_vjwO2PSF1sn1xH0HzRaOB6oIn_eGRsEhB9U_abzqA";
+  var ENDPOINT = "https://docs.google.com/forms/d/e/" + FORM_ID + "/formResponse";
+
+  var ENTRY = {
+    tema:     "entry.824632358",
+    jmeno:    "entry.314604037",
+    prijmeni: "entry.95690463",
+    telefon:  "entry.500858380",
+    email:    "entry.252995711",
+    rozsah:   "entry.404767506",
+    misto:    "entry.1617149436",
+    info:     "entry.355151342"
+  };
+
+  /* ---- klik na rámeček předvyplní poptávku ----
+     Dvě nezávislé skupiny: formáty (téma + rozsah) a místa. Výběr formátu
+     nemaže vybrané místo a naopak. Neskrolujeme na formulář — zaškrtnuté
+     kolečko v rohu je zpětná vazba samo o sobě. */
+  var opts = document.querySelectorAll(".opt[data-rozsah]");
+  var locs = document.querySelectorAll(".loc[data-misto]");
+
+  function bliknout(el){
+    if(!el) return;
+    el.classList.remove("flash");
+    void el.offsetWidth;
+    el.classList.add("flash");
+  }
+
+  function oznacit(skupina, box){
+    for(var i=0;i<skupina.length;i++){
+      var je = (skupina[i] === box);
+      skupina[i].classList.toggle("selected", je);
+      skupina[i].setAttribute("aria-pressed", je ? "true" : "false");
+    }
+  }
+
+  function podleMista(hodnota){
+    for(var i=0;i<locs.length;i++){
+      if(locs[i].dataset.misto === hodnota){ return locs[i]; }
+    }
+    return null;
+  }
+
+  function vyplnit(box){
+    var f = document.getElementById("lead-form");
+    if(!f) return;
+    var zmeneno = [];
+    var formatovy = (box.dataset.rozsah !== undefined);
+
+    if(formatovy){
+      var vsechna = f.querySelectorAll('input[name="tema"]');
+      for(var v = 0; v < vsechna.length; v++){ vsechna[v].checked = false; }
+      if(box.dataset.tema){
+        var chce = box.dataset.tema.split("|");
+        for(var c = 0; c < chce.length; c++){
+          var r = f.querySelector('input[name="tema"][value="' + chce[c] + '"]');
+          if(r){ r.checked = true; zmeneno.push(r.parentNode); }
+        }
+      }
+      if(f.varianta){
+        f.varianta.value = box.dataset.rozsah;
+        zmeneno.push(f.varianta);
+      }
+      oznacit(opts, box);
+    }
+
+    if(box.dataset.misto && f.misto){
+      f.misto.value = box.dataset.misto;
+      zmeneno.push(f.misto);
+      oznacit(locs, podleMista(box.dataset.misto));
+    }
+    if(!formatovy){ oznacit(locs, box); }
+
+    for(var j=0;j<zmeneno.length;j++){ bliknout(zmeneno[j]); }
+  }
+
+  var klikaci = [];
+  for(var a=0;a<opts.length;a++){ klikaci.push(opts[a]); }
+  for(var b=0;b<locs.length;b++){ klikaci.push(locs[b]); }
+
+  for(var k=0;k<klikaci.length;k++){
+    (function(box){
+      box.addEventListener("click", function(){ vyplnit(box); });
+      box.addEventListener("keydown", function(e){
+        if(e.key === "Enter" || e.key === " "){ e.preventDefault(); vyplnit(box); }
+      });
+    })(klikaci[k]);
+  }
+
+  /* ruční zásah do formuláře zruší zvýraznění rámečku */
+  ["tema","varianta"].forEach(function(jm){
+    var uzly = document.getElementsByName(jm);
+    for(var i=0;i<uzly.length;i++){
+      uzly[i].addEventListener("change", function(){ oznacit(opts, null); });
+    }
+  });
+  var poleMisto = document.getElementsByName("misto");
+  for(var m=0;m<poleMisto.length;m++){
+    poleMisto[m].addEventListener("change", function(e){
+      oznacit(locs, podleMista(e.target.value));
+    });
+  }
+
+  var form = document.getElementById("lead-form");
+  var msg  = document.getElementById("form-msg");
+  var btn  = document.getElementById("submit-btn");
+
+  function show(type, text){
+    msg.className = "form-msg " + type;
+    msg.textContent = text;
+  }
+
+  /* Cihlová = tady něco chybí. Označíme pole, na které hláška ukazuje. */
+  function policko(el){
+    while(el && !(el.classList && el.classList.contains("field"))){ el = el.parentNode; }
+    return el;
+  }
+  function vycisti(){
+    var v = form.querySelectorAll(".field.invalid");
+    for(var i=0;i<v.length;i++){ v[i].classList.remove("invalid"); }
+  }
+  function chybi(el, text){
+    var f = policko(el);
+    if(f){ f.classList.add("invalid"); }
+    show("err", text);
+    var cil = (el && el.type === "checkbox") ? f : el;
+    if(cil === f && f && f.scrollIntoView){ f.scrollIntoView({block:"center", behavior:"smooth"}); }
+    else if(cil && cil.focus){ cil.focus(); }
+    return false;
+  }
+  form.addEventListener("input", function(e){
+    var f = policko(e.target);
+    if(f){ f.classList.remove("invalid"); }
+  });
+  form.addEventListener("change", function(e){
+    var f = policko(e.target);
+    if(f){ f.classList.remove("invalid"); }
+  });
+
+  form.addEventListener("submit", function(e){
+    e.preventDefault();
+
+    var temata   = form.querySelectorAll('input[name="tema"]:checked');
+    var jmeno    = form.jmeno.value.trim();
+    var prijmeni = form.prijmeni.value.trim();
+    var telefon  = form.telefon.value.trim();
+    var email    = form.email.value.trim();
+
+    vycisti();
+    if(!temata.length) { return chybi(form.querySelector('input[name="tema"]'),"Vyberte prosím aspoň jedno téma."); }
+    if(!jmeno)    { return chybi(form.jmeno,"Doplňte prosím jméno."); }
+    if(!prijmeni) { return chybi(form.prijmeni,"Doplňte prosím příjmení."); }
+    if(!telefon)  { return chybi(form.telefon,"Doplňte prosím telefon."); }
+    if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { return chybi(form.email,"Zkontrolujte prosím e-mailovou adresu."); }
+
+    var data = new FormData();
+    for(var t = 0; t < temata.length; t++){
+      data.append(ENTRY.tema, temata[t].value);
+    }
+    data.append(ENTRY.tema + "_sentinel", "");
+    data.append(ENTRY.jmeno, jmeno);
+    data.append(ENTRY.prijmeni, prijmeni);
+    data.append(ENTRY.telefon, telefon);
+    data.append(ENTRY.email, email);
+    /* nepovinné výběry posíláme jen když jsou vyplněné */
+    if(form.varianta.value){ data.append(ENTRY.rozsah, form.varianta.value); }
+    if(form.misto.value){ data.append(ENTRY.misto, form.misto.value); }
+    data.append(ENTRY.info, form.info.value.trim());
+
+    btn.disabled = true;
+    btn.textContent = "Odesílám…";
+    show("ok","Odesílám…");
+
+    fetch(ENDPOINT, { method:"POST", mode:"no-cors", body:data })
+      .then(function(){
+        var hide = form.querySelectorAll(".field, .row2, .consent");
+        for(var i=0;i<hide.length;i++){ hide[i].style.display = "none"; }
+        btn.style.display = "none";
+        show("ok","Hotovo — poptávka odeslaná. Ozvu se do dvou pracovních dnů.");
+      })
+      .catch(function(){
+        btn.disabled = false;
+        btn.textContent = "Odeslat poptávku";
+        show("err","Odeslání se nepovedlo. Zkuste to prosím znovu, nebo mi napište přímo e-mailem.");
+      });
+  });
+})();
+</script>
+
+</body>
+</html>
