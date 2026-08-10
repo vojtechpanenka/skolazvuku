@@ -212,7 +212,7 @@ h2{font-size:clamp(26px,3.6vw,40px);line-height:1.14;font-weight:bold;letter-spa
     </div></div>
 
     <!-- ===== GRADIENT ===== -->
-    <div class="sa-head">
+    <div class="sa-head" id="grHead">
       <h3>Gradient</h3>
       <p>Oba boxy hrají dozadu přesně v protifázi a proto se ruší v celém pásmu. Naopak vepředu je součet frekvenčně závislý.</p>
     </div>
@@ -528,7 +528,29 @@ h2{font-size:clamp(26px,3.6vw,40px);line-height:1.14;font-weight:bold;letter-spa
     }
     render();
   }
-  rotBox.addEventListener('change',function(){rotated=rotBox.checked;applyRot();});
+  /* Po sbalení endfire sekce doskrolujeme na nadpis Gradient, aby uživatel
+     nezůstal viset v prázdnu. Čekáme na konec animace, jinak bychom počítali
+     cílovou pozici z rozložení, které se ještě mění. */
+  function scrollToGradient(){
+    var head=document.getElementById('grHead');
+    var reduce=window.matchMedia('(prefers-reduced-motion:reduce)').matches;
+    function go(){
+      var bar=compact?setBar:ctrlBar;
+      var off=(bar&&bar.offsetHeight)?bar.offsetHeight:0;
+      var y=window.pageYOffset+head.getBoundingClientRect().top-off-12;
+      window.scrollTo({top:Math.max(0,y),behavior:reduce?'auto':'smooth'});
+    }
+    if(reduce){go();return;}
+    var done=false;
+    function fire(){if(done)return;done=true;
+      efBlock.removeEventListener('transitionend',fire);go();}
+    efBlock.addEventListener('transitionend',fire);
+    setTimeout(fire,520);   /* pojistka, kdyby transitionend nedorazil */
+  }
+  rotBox.addEventListener('change',function(){
+    rotated=rotBox.checked; applyRot();
+    if(rotated) scrollToGradient();
+  });
   /* Stín pod plovoucím pruhem až ve chvíli, kdy se opravdu přilepí k hornímu okraji. */
   var ctrlBar=document.querySelector('.sa-controls'), setBar=document.querySelector('.sa-set');
   function stuckCheck(){
