@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fresnelova analýza zdroje | Škola zvuku</title>
+<meta name="description" content="Interaktivní ukázka Fresnelovy analýzy line arraye – efektivní délka, přenos a level-over-distance.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23F5F2EA'/><circle cx='50' cy='50' r='30' fill='%23BE3B20'/></svg>">
+<style>
+:root{
+  --bg:#F5F2EA; --bg2:#FFFFFF; --bg3:#EFEBE0; --bg4:#E6E1D3;
+  --text:#191917; --muted:#6F6A61; --line:#D5D0C2;
+  --red:#BE3B20; --gold:#8F6B22; --sum:#2E7D4F; --cancel:#C0392B;
+  --maxw:1180px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:Arial,Helvetica,"Helvetica Neue",sans-serif;
+  font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased}
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 20px}
+section{padding:26px 0 40px}
+.eyebrow{font-size:12px;font-weight:bold;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);margin-bottom:8px}
+h2{font-size:clamp(23px,3vw,34px);line-height:1.1;font-weight:bold;letter-spacing:-.015em;margin-bottom:8px}
+.lead{font-size:15px;color:var(--muted);line-height:1.45}
+.accent{color:var(--red)}
+.fa{--sum:#2E7D4F;--cancel:#C0392B}
+
+/* ovládací řada (neplovoucí) */
+.fa .ctlrow{display:flex;align-items:stretch;gap:1px;background:var(--line);border:1px solid var(--line);
+  flex-wrap:wrap;margin-top:16px}
+.fa .rdrow{display:flex;gap:1px;background:var(--line);border:1px solid var(--line);border-top:none}
+.fa .rdrow .cell{flex:1;min-width:0}
+.fa .cell{background:var(--bg4);padding:8px 12px;display:flex;flex-direction:column;gap:6px;justify-content:center}
+.fa .cell.grow{flex:1;min-width:0}
+.fa .cell > .lab{font-size:10px;font-weight:bold;letter-spacing:.11em;text-transform:uppercase;color:var(--gold)}
+.fa .seg-btns{display:flex;gap:1px;background:var(--line);border:1px solid var(--line);flex-wrap:wrap}
+.fa .seg-btns button{font-family:inherit;font-size:12.5px;font-weight:bold;background:var(--bg2);color:var(--muted);
+  border:none;padding:7px 10px;cursor:pointer;white-space:nowrap;flex:1 1 auto;min-width:56px}
+.fa .seg-btns button:hover{color:var(--text)}
+.fa .seg-btns button[aria-pressed="true"]{background:var(--red);color:var(--bg)}
+.fa .toggles{display:flex;gap:6px;flex-wrap:wrap}
+.fa .sw{display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:var(--muted);
+  white-space:nowrap;user-select:none;border:1.5px solid var(--line);padding:4px 8px 4px 5px}
+.fa .sw:hover{border-color:var(--muted)}
+.fa .sw.on{border-color:var(--gold);background:rgba(143,107,34,.10);color:var(--text)}
+.fa .sw input{position:absolute;opacity:0;pointer-events:none}
+.fa .sw i{box-sizing:border-box;width:30px;height:17px;flex:0 0 30px;position:relative;border-radius:99px;
+  background:#C7C1B2;transition:background .2s}
+.fa .sw i::after{content:"";position:absolute;top:2.5px;left:2.5px;width:12px;height:12px;border-radius:50%;
+  background:#fff;box-shadow:0 1px 2px rgba(25,24,23,.22);transition:transform .2s}
+.fa .sw input:checked ~ i{background:var(--gold)}
+.fa .sw input:checked ~ i::after{transform:translateX(13px)}
+.fa .cpl{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--muted)}
+.fa .cpl .cpll{font-weight:bold;color:var(--text)}
+.fa .cpl button{font-family:inherit;font-weight:bold;font-size:15px;line-height:1;width:24px;height:22px;
+  border:1px solid var(--line);background:var(--bg2);color:var(--text);cursor:pointer}
+.fa .cpl button:hover{border-color:var(--muted)}
+.fa .cpl .cplv{font-family:ui-monospace,"SF Mono",Consolas,monospace;font-weight:bold;color:var(--text);min-width:46px;text-align:center}
+.fa .rd{font-family:ui-monospace,"SF Mono",Consolas,monospace;font-size:16px;font-weight:bold;color:var(--text)}
+.fa .rd small{font-size:11px;color:var(--muted);font-weight:normal}
+
+/* plovoucí: JEN frekvence */
+.fa .freqbar{position:sticky;top:0;z-index:30;background:var(--bg2);border:1px solid var(--line);border-top:none;
+  padding:8px 14px;display:flex;align-items:center;gap:16px;transition:box-shadow .2s}
+.fa .freqbar.stuck{box-shadow:0 6px 14px rgba(25,24,23,.13)}
+.fa .freqbar .fv{font-family:ui-monospace,"SF Mono",Consolas,monospace;font-size:18px;font-weight:bold;white-space:nowrap}
+.fa .freqbar .fv small{font-size:11px;color:var(--muted);font-weight:normal}
+.fa .freqbar .lam{font-family:ui-monospace,"SF Mono",Consolas,monospace;font-size:13px;color:var(--muted);white-space:nowrap}
+.fa .ftrack{position:relative;flex:1;min-width:120px}
+.fa input[type=range]{-webkit-appearance:none;appearance:none;height:4px;width:100%;background:var(--bg4);
+  outline:none;border:none;margin:6px 0 3px;cursor:pointer}
+.fa input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;background:var(--red);cursor:pointer;border:none;border-radius:0}
+.fa input[type=range]::-moz-range-thumb{width:16px;height:16px;background:var(--red);cursor:pointer;border:none;border-radius:0}
+.fa .lmark{position:absolute;bottom:-9px;transform:translateX(-50%);width:1px;height:7px;background:var(--gold);pointer-events:none}
+.fa .lmark::after{content:"λ=zdroj";position:absolute;top:7px;left:50%;transform:translateX(-50%);
+  font-family:ui-monospace,monospace;font-size:8px;color:var(--gold);white-space:nowrap}
+.fa .fticks{position:relative;height:12px;font-family:ui-monospace,monospace;font-size:9px;color:var(--muted)}
+.fa .fticks span{position:absolute;transform:translateX(-50%)}
+
+/* canvas */
+.fa .stage{background:var(--bg2);border:1px solid var(--line);border-top:none}
+.fa svg.scene{display:block;width:100%;height:auto;touch-action:none;cursor:crosshair}
+.fa .mstage{display:none;background:var(--bg2);border:1px solid var(--line);border-top:none}
+.fa svg.mresp{display:block;width:100%;height:auto}
+
+.fa .foot{margin-top:12px;font-size:12.5px;color:var(--muted);line-height:1.55}
+.fa .foot b{color:var(--text)}
+
+@media (max-width:760px){
+  section{padding:16px 0 26px}
+  .wrap{padding:0 11px}
+  .fa .ctlrow{gap:1px}
+  .fa .seg-btns button{font-size:12px;padding:7px 6px;min-width:0}
+  .fa .freqbar{flex-wrap:wrap;gap:8px}
+  .fa .freqbar .ftrack{order:3;flex-basis:100%}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<section class="fa">
+  <div class="wrap">
+
+    <div class="eyebrow">Šíření a směrovost</div>
+    <h2>Směrovost <span class="accent">reproduktoru a line arraye</span></h2>
+    <p class="lead">Posouvejte mikrofonem a analyzovanou frekvenci měňte táhlem; přenos se počítá v místě mikrofonu širokopásmově.</p>
+
+    <div class="ctlrow">
+      <div class="cell">
+        <span class="lab">Zdroj</span>
+        <div class="seg-btns" id="srcSeg">
+          <button data-src="single" aria-pressed="false">15″</button>
+          <button data-src="straight" aria-pressed="false">Rovný</button>
+          <button data-src="curved" aria-pressed="false">Zahnutý</button>
+          <button data-src="correct" aria-pressed="true">Postupný</button>
+        </div>
+      </div>
+      <div class="cell grow">
+        <span class="lab">Zobrazení</span>
+        <div class="toggles">
+          <label class="sw on" id="swF"><input type="checkbox" id="tglF" checked><i></i>Kružnice</label>
+          <label class="sw on" id="swL"><input type="checkbox" id="tglL" checked><i></i>Popisky</label>
+          <label class="sw on" id="swA"><input type="checkbox" id="tglA" checked><i></i>Směrovost</label>
+          <label class="sw on" id="swT"><input type="checkbox" id="tglT" checked><i></i>Přenos</label>
+        </div>
+      </div>
+    </div>
+    <div class="freqbar" id="freqbar">
+      <div class="fv"><span id="fVal">190</span> <small id="fUnit">Hz</small></div>
+      <div class="ftrack">
+        <input id="freq" type="range" min="0" max="1000" step="1" value="500">
+        <div class="lmark" id="lmark"></div>
+        <div class="fticks" id="fticks"></div>
+      </div>
+      <div class="lam">λ = <span id="lamVal">1.80 m</span></div>
+    </div>
+
+    <div class="stage">
+      <svg class="scene" id="scene" viewBox="0 0 1160 470" role="img"
+           aria-label="Zavěšený line array, posuvný mikrofon, Fresnelovy zóny a přenos."></svg>
+    </div>
+    <div class="rdrow">
+      <div class="cell"><span class="lab">Efektivní délka zdroje</span><span class="rd"><span id="rEff">1.12</span> <small>m</small></span></div>
+      <div class="cell"><span class="lab">Efektivní podíl</span><span class="rd"><span id="rPct">63</span> <small>%</small></span></div>
+      <div class="cell">
+        <span class="lab">CPL</span>
+        <div class="cpl"><button id="cplM">−</button><span class="cplv" id="cplV">0 dB</span><button id="cplP">+</button></div>
+      </div>
+    </div>
+    <div class="mstage" id="mstage">
+      <svg class="mresp" id="mResp" viewBox="0 0 820 200" role="img" aria-label="Přenos v pozici mikrofonu."></svg>
+    </div>
+
+    <p class="foot"><b>Fresnelova analýza; tři mezikruží = λ</b>; zelená sčítá v rozsahu 0 až +6 dB, cihlová odečítá v rozsahu 0 až −∞ dB.<br>
+      <b>Na zobrazení přenosu</b> bylo aplikováno 1/3-oktávové váhování; 0 dB = jeden vyrovnaný modul; basy se sčítají z více beden najednou;<br>
+      <b>CPL</b> slouží ke kompenzaci kumulace basů z důvodu většího počtu segmentů, c = 343 m/s.</p>
+
+  </div>
+</section>
+
+<script>
+(function(){
+  "use strict";
+  var NS="http://www.w3.org/2000/svg", C=343;
+  var GOLD='#8F6B22', MUTED='#6F6A61', LINE='#D5D0C2', RED='#BE3B20',
+      TEXT='#191917', SUM='#2E7D4F', CANCEL='#C0392B', CABBG='#FFFFFF', GRILL='#EFEBE0', PAPER='#F5F2EA';
+  var SUM_F='rgba(46,125,79,.16)', CANCEL_F='rgba(192,57,43,.16)';
+  var MONO='ui-monospace,"SF Mono",Consolas,monospace';
+  function el(t,a){var e=document.createElementNS(NS,t);for(var k in a)e.setAttribute(k,a[k]);return e;}
+  function tx(a,s){var e=el('text',a);e.textContent=s;return e;}
+
+  /* ---------- svět (metry) – responzivní měřítko ---------- */
+  var LO_D={S:61, VBW:1160, VBH:470, MXpx:12, GYpx:430};      // desktop – široký
+  var LO_M={S:70, VBW:820,  VBH:540, MXpx:12, GYpx:500};      // mobil – jako starý (820×540)
+  var S, VBW, VBH, MXpx, GYpx, WORLD, D_REF, isMobile=false;
+  var mq=window.matchMedia('(max-width:760px)');
+  function applyLayout(){
+    isMobile=mq.matches;
+    var L=isMobile?LO_M:LO_D, zoom=(state.src==='single')?4:1;   // 15" = 4× zoom na membránu
+    S=L.S*zoom; VBW=L.VBW; VBH=L.VBH; MXpx=L.MXpx; GYpx=L.GYpx;
+    WORLD={w:(VBW-MXpx)/S, h:GYpx/S};
+    D_REF=(state.src==='single')?2.0:8.0;                        // referenční vzdálenost pro 0 dB
+    scene.setAttribute('viewBox','0 0 '+VBW+' '+VBH);
+    document.getElementById('mstage').style.display=isMobile?'block':'none';
+  }
+  function X(x){return MXpx+x*S;}
+  function Y(y){return GYpx-y*S;}
+  var ATOP={x:1.6,y:6.5}, SEG=1.8/8;                    // vršek horního elementu v 6.5 m
+  var EAR=1.7;
+  var SPLAYS={straight:[0,0,0,0,0,0,0],curved:[14,14,14,14,14,14,14],correct:[3,4,5,6,8,10,12]};
+  var SRC_LEN={single:0.35,straight:1.8,curved:1.8,correct:1.8};
+  var state={src:'correct',f:190,L:{x:8,y:EAR},fresnel:true,labels:true,aim:true,transfer:true,cpl:0};
+
+  /* grafový box (px) – přenos, menší, pravý horní roh canvasu (jen desktop) */
+  var GTR ={x:706,y:14,w:440,h:196};
+
+  /* ---------- geometrie zdroje ---------- */
+  function buildRaw(kind,baseAng){
+    var sp=SPLAYS[kind], ang=baseAng, x=ATOP.x, y=ATOP.y, joints=[{x:x,y:y}], boxes=[];
+    for(var i=0;i<8;i++){
+      var dx=Math.cos(ang), dy=Math.sin(ang), x2=x+SEG*dx, y2=y+SEG*dy, nx=-dy, ny=dx;
+      boxes.push({a:{x:x,y:y},b:{x:x2,y:y2},nx:nx,ny:ny});
+      x=x2;y=y2;joints.push({x:x,y:y});
+      if(i<7)ang-=sp[i]*Math.PI/180;
+    }
+    return {joints:joints,boxes:boxes};
+  }
+  // naklonění: střední osa (z akust. středu) míří na posluchače v 16 m, uši 1.7 m
+  function aimBase(kind){
+    var B=buildRaw(kind,-Math.PI/2).boxes, cx=0,cy=0,sn=0,cs=0;
+    B.forEach(function(b){cx+=(b.a.x+b.b.x)/2;cy+=(b.a.y+b.b.y)/2;sn+=b.ny;cs+=b.nx;});
+    var n=B.length; cx/=n;cy/=n;
+    var mnA=Math.atan2(sn,cs), T={x:ATOP.x+16,y:EAR}, des=Math.atan2(T.y-cy,T.x-cx);
+    return -Math.PI/2+(des-mnA);
+  }
+  function buildSource(kind){
+    if(kind==='single'){
+      var Ln=0.35, sx=WORLD.w*0.26, cyc=WORLD.h*0.52;   // membrána vlevo uprostřed 4× zoomu
+      var a={x:sx,y:cyc+Ln/2}, b={x:sx,y:cyc-Ln/2};
+      return {kind:kind,length:Ln,joints:[a,b],boxes:[{a:a,b:b,nx:1,ny:0}],modules:1};
+    }
+    var baseAng=(kind==='straight'||kind==='curved')?aimBase(kind):-Math.PI/2;
+    var r=buildRaw(kind,baseAng);
+    return {kind:kind,length:1.8,joints:r.joints,boxes:r.boxes,modules:8};
+  }
+  function sampleChord(src,M){
+    var j=src.joints, seg=[], tot=0, i;
+    for(i=1;i<j.length;i++){var Ls=Math.hypot(j[i].x-j[i-1].x,j[i].y-j[i-1].y);seg.push(Ls);tot+=Ls;}
+    var out=[];
+    for(var k=0;k<=M;k++){var s=tot*k/M, ix=0;
+      while(ix<seg.length-1 && s>seg[ix]){s-=seg[ix];ix++;}
+      var t=seg[ix]?Math.min(1,s/seg[ix]):0;
+      out.push({x:j[ix].x+(j[ix+1].x-j[ix].x)*t, y:j[ix].y+(j[ix+1].y-j[ix].y)*t});}
+    return out;
+  }
+  // wavefront modulu nad 1 kHz: souosá válcová vlnoplocha zahnutá do 14°
+  function sampleArc(src,perMod){
+    var pts=[], al=7*Math.PI/180;
+    src.boxes.forEach(function(bx){
+      var a=bx.a,b=bx.b,nx=bx.nx,ny=bx.ny, Lc=Math.hypot(b.x-a.x,b.y-a.y), R=(Lc/2)/Math.sin(al);
+      var Mx=(a.x+b.x)/2,My=(a.y+b.y)/2, Cx=Mx-nx*R*Math.cos(al), Cy=My-ny*R*Math.cos(al);
+      var aA=Math.atan2(a.y-Cy,a.x-Cx), aB=Math.atan2(b.y-Cy,b.x-Cx), dA=aB-aA;
+      while(dA>Math.PI)dA-=2*Math.PI; while(dA<-Math.PI)dA+=2*Math.PI;
+      for(var i=0;i<perMod;i++){var t=perMod>1?i/(perMod-1):0, an=aA+dA*t;
+        pts.push({x:Cx+R*Math.cos(an), y:Cy+R*Math.sin(an)});}
+    });
+    return pts;
+  }
+  function distsTo(pts,L){return pts.map(function(p){return Math.hypot(p.x-L.x,p.y-L.y);});}
+
+  /* ---------- přenosový model ---------- */
+  function arrayDB(r,f,Nmod){                            // 0 dB = jeden vyrovnaný modul v D_REF
+    var k=2*Math.PI*f/C, re=0,im=0,i;
+    for(i=0;i<r.length;i++){var w=1/r[i], ph=k*r[i]; re+=w*Math.cos(ph); im-=w*Math.sin(ph);}
+    return 20*Math.log10(D_REF*(Nmod/r.length)*Math.hypot(re,im)+1e-9);
+  }
+  function boxDB(f){ return -13+16.5/(1+Math.pow(2700/f,1.4)); }    // přenos boxu (horna silná) – původní
+  function cplShelf(f){ return state.cpl*(1/(1+(f/600)*(f/600))); } // CPL low-shelf, měkký roh 600 Hz
+  function respDB(r,f,Nmod,isLA){ var d=arrayDB(r,f,Nmod)+cplShelf(f); if(isLA)d+=boxDB(f); return d; }
+
+  /* ---------- Fresnel (mic) ---------- */
+  function analyze(){
+    var src=buildSource(state.src), L=state.L, M=260, pts=sampleChord(src,M), dist=[], i;
+    var Rn=Infinity,Rf=-Infinity,ni=0;
+    for(i=0;i<pts.length;i++){var d=Math.hypot(pts[i].x-L.x,pts[i].y-L.y);dist.push(d);
+      if(d<Rn){Rn=d;ni=i;} if(d>Rf)Rf=d;}
+    var lam=C/state.f, third=lam/3, delta=Rf-Rn, eff=0,arc=0,inZone=[];
+    for(i=0;i<pts.length;i++)inZone.push(false);
+    for(i=1;i<pts.length;i++){var dl=Math.hypot(pts[i].x-pts[i-1].x,pts[i].y-pts[i-1].y),mid=(dist[i]+dist[i-1])/2;arc+=dl;
+      if(mid-Rn<third){eff+=dl;inZone[i]=true;inZone[i-1]=true;}}
+    return {src:src,pts:pts,dist:dist,Rn:Rn,Rf:Rf,ni:ni,nearPt:pts[ni],lam:lam,third:third,
+      delta:delta,eff:eff,arc:arc,inZone:inZone,zones:delta/third,effPct:100*eff/arc};
+  }
+
+  /* (level-over-distance graf odstraněn) */
+
+  /* ---------- kreslení ---------- */
+  var scene=document.getElementById('scene');
+
+  function drawLAbox(g,a,b,nx,ny,front){
+    var ax=X(a.x),ay=Y(a.y),bx=X(b.x),by=Y(b.y), npx=nx,npy=-ny,nl=Math.hypot(npx,npy)||1;npx/=nl;npy/=nl;
+    var ux=bx-ax,uy=by-ay,ul=Math.hypot(ux,uy)||1;ux/=ul;uy/=ul;
+    var D=front*S, tap=ul*0.16;
+    var backTop=(ax-npx*D+ux*tap)+' '+(ay-npy*D+uy*tap), backBot=(bx-npx*D-ux*tap)+' '+(by-npy*D-uy*tap);
+    g.appendChild(el('polygon',{points:ax+' '+ay+' '+bx+' '+by+' '+backBot+' '+backTop,fill:CABBG,stroke:MUTED,'stroke-width':1}));
+    var gd=D*0.30;
+    g.appendChild(el('polygon',{points:ax+' '+ay+' '+bx+' '+by+' '+(bx-npx*gd)+' '+(by-npy*gd)+' '+(ax-npx*gd)+' '+(ay-npy*gd),
+      fill:GRILL,stroke:MUTED,'stroke-width':.5}));
+    var mx=(ax+bx)/2,my=(ay+by)/2;
+    g.appendChild(el('line',{x1:ax*0.5+mx*0.5,y1:ay*0.5+my*0.5,x2:mx-npx*D*0.85,y2:my-npy*D*0.85,stroke:MUTED,'stroke-width':.5,opacity:.6}));
+    g.appendChild(el('line',{x1:bx*0.5+mx*0.5,y1:by*0.5+my*0.5,x2:mx-npx*D*0.85,y2:my-npy*D*0.85,stroke:MUTED,'stroke-width':.5,opacity:.6}));
+  }
+  function draw15driver(g,a,b){
+    var sx=a.x, cy=(a.y+b.y)/2, coneD=0.17, formerH=0.09, magD=0.15, magH=0.24, apex={x:sx-coneD,y:cy};
+    g.appendChild(el('polygon',{points:X(sx)+' '+Y(a.y)+' '+X(sx)+' '+Y(b.y)+' '+X(apex.x)+' '+Y(apex.y),
+      fill:'rgba(46,125,79,.13)',stroke:MUTED,'stroke-width':1.2}));
+    g.appendChild(el('line',{x1:X(sx),y1:Y(a.y),x2:X(sx),y2:Y(b.y),stroke:MUTED,'stroke-width':1.6}));
+    g.appendChild(el('circle',{cx:X(apex.x)+3,cy:Y(cy),r:3,fill:CABBG,stroke:MUTED,'stroke-width':.8}));
+    var mx1=apex.x-formerH,mx0=mx1-magD;
+    g.appendChild(el('rect',{x:X(mx0),y:Y(cy+magH/2),width:X(mx1)-X(mx0),height:Y(cy-magH/2)-Y(cy+magH/2),fill:GRILL,stroke:MUTED,'stroke-width':1}));
+    g.appendChild(el('line',{x1:X(sx),y1:Y(a.y),x2:X(mx1),y2:Y(cy+magH/2),stroke:MUTED,'stroke-width':.8,opacity:.7}));
+    g.appendChild(el('line',{x1:X(sx),y1:Y(b.y),x2:X(mx1),y2:Y(cy-magH/2),stroke:MUTED,'stroke-width':.8,opacity:.7}));
+  }
+
+  function render(){
+    var A=analyze();
+    scene.innerHTML='';
+    var gGrid=el('g',{}),gRing=el('g',{}),gSrc=el('g',{}),gDyn=el('g',{}),gLab=el('g',{}),gPlot=el('g',{});
+    [gGrid,gPlot,gRing,gSrc,gDyn,gLab].forEach(function(x){scene.appendChild(x);});
+
+    /* zem + pásmo uší (jen pro array; single je zoom na membránu) */
+    if(state.src!=='single'){
+      gGrid.appendChild(el('line',{x1:X(0),y1:Y(0),x2:X(WORLD.w),y2:Y(0),stroke:LINE,'stroke-width':1.4}));
+      gGrid.appendChild(el('line',{x1:X(0),y1:Y(EAR),x2:X(WORLD.w),y2:Y(EAR),stroke:LINE,'stroke-width':.7,opacity:.6,'stroke-dasharray':'3,4'}));
+      gGrid.appendChild(tx({x:X(WORLD.w)-4,y:Y(EAR)-3,fill:MUTED,'font-size':9,'text-anchor':'end','font-family':MONO},'uši 1,7 m'));
+    } else {
+      /* referenční kružnice: stejná vzdálenost od zdroje jako defaultní pozice mikrofonu */
+      var scx=(A.src.boxes[0].a.x+A.src.boxes[0].b.x)/2, scy=(A.src.boxes[0].a.y+A.src.boxes[0].b.y)/2;
+      var refD=Math.hypot(WORLD.w*0.5-scx, WORLD.h*0.5-scy);
+      gGrid.appendChild(el('circle',{cx:X(scx),cy:Y(scy),r:refD*S,fill:'none',stroke:LINE,'stroke-width':.7,opacity:.6,'stroke-dasharray':'3,4'}));
+      gGrid.appendChild(tx({x:X(scx),y:Y(scy+refD)-4,fill:MUTED,'font-size':9,'text-anchor':'middle','font-family':MONO},refD.toFixed(2)+' m'));
+    }
+
+    /* Fresnelovy kružnice */
+    if(state.fresnel){
+      var lx=X(state.L.x),ly=Y(state.L.y),thirdPx=A.third*S,start=A.Rn;
+      var nNeed=Math.ceil((A.Rf-start)/A.third)+1,MAXR=240,k;
+      if(nNeed<=MAXR){
+        for(k=nNeed-1;k>=0;k--){var rMid=(start+(k+0.5)*A.third)*S,pos=(k%3!==1);
+          gRing.appendChild(el('circle',{cx:lx,cy:ly,r:rMid,fill:'none',stroke:pos?SUM_F:CANCEL_F,'stroke-width':thirdPx}));}
+        if(nNeed<=90)for(k=0;k<=nNeed;k++)
+          gRing.appendChild(el('circle',{cx:lx,cy:ly,r:(start+k*A.third)*S,fill:'none',stroke:'rgba(25,24,23,.09)','stroke-width':.5}));
+      }
+    }
+
+    /* nasměrování – 14° vyzařovací pás z hran modulu (jen line array; 15" bez horny nemá směrovost) */
+    if(state.aim && state.src!=='single'){
+      A.src.boxes.forEach(function(b){
+        var phi=Math.atan2(b.ny,b.nx),half=7*Math.PI/180,R=2.2;
+        var uax=b.a.x+Math.cos(phi+half)*R,uay=b.a.y+Math.sin(phi+half)*R;
+        var lbx=b.b.x+Math.cos(phi-half)*R,lby=b.b.y+Math.sin(phi-half)*R;
+        gRing.appendChild(el('polygon',{points:X(b.a.x)+' '+Y(b.a.y)+' '+X(uax)+' '+Y(uay)+' '+X(lbx)+' '+Y(lby)+' '+X(b.b.x)+' '+Y(b.b.y),
+          fill:'rgba(143,107,34,.09)',stroke:'rgba(143,107,34,.24)','stroke-width':.6}));
+      });
+    }
+
+    /* zdroj */
+    if(state.src==='single') draw15driver(gSrc,A.src.boxes[0].a,A.src.boxes[0].b);
+    else A.src.boxes.forEach(function(bx){drawLAbox(gSrc,bx.a,bx.b,bx.nx,bx.ny,0.30);});
+
+    /* koherentní část */
+    var run=[];
+    function flush(){if(run.length<2){run=[];return;}var d='';run.forEach(function(p,i){d+=(i?'L':'M')+X(p.x)+' '+Y(p.y);});
+      gDyn.appendChild(el('path',{d:d,fill:'none',stroke:SUM,'stroke-width':Math.max(3,0.10*S),'stroke-linecap':'round','stroke-linejoin':'round',opacity:.95}));run=[];}
+    for(var i=0;i<A.pts.length;i++){if(A.inZone[i])run.push(A.pts[i]);else flush();} flush();
+
+    /* λ kóta pod zdrojem + popisky zón */
+    if(state.fresnel && state.labels){
+      var Lp=state.L, dirx=A.nearPt.x-Lp.x, diry=A.nearPt.y-Lp.y, dl=Math.hypot(dirx,diry)||1; dirx/=dl;diry/=dl;
+      if(A.zones<=22){
+        var s2=A.Rn,n2=Math.ceil((A.Rf-s2)/A.third)+1,kk;
+        for(kk=0;kk<n2;kk++){var rM=s2+(kk+0.5)*A.third,wx=Lp.x+dirx*rM,wy=Lp.y+diry*rM,pos2=(kk%3!==1),px=X(wx),py=Y(wy);
+          gLab.appendChild(el('circle',{cx:px,cy:py,r:7.5,fill:'rgba(245,242,234,.9)',stroke:'none'}));
+          gLab.appendChild(tx({x:px,y:py+4,fill:pos2?SUM:CANCEL,'font-size':12,'text-anchor':'middle','font-family':MONO,'font-weight':'bold'},pos2?'+':'−'));}
+      }
+      if(A.zones>=0.9){
+        var jj=A.src.joints,bpt=jj[0];for(var q=0;q<jj.length;q++)if(jj[q].y<bpt.y)bpt=jj[q];
+        var T={x:bpt.x,y:Math.max(0.5,bpt.y-0.75)},ldx=T.x-Lp.x,ldy=T.y-Lp.y,ll=Math.hypot(ldx,ldy)||1;ldx/=ll;ldy/=ll;
+        var kc=Math.round((ll-A.Rn)/A.third)-1;if(kc<0)kc=0;var rS=A.Rn+kc*A.third,rE=rS+3*A.third;
+        var q1x=Lp.x+ldx*rS,q1y=Lp.y+ldy*rS,q2x=Lp.x+ldx*rE,q2y=Lp.y+ldy*rE,pxx=-ldy,pyy=ldx;
+        gLab.appendChild(el('line',{x1:X(q1x),y1:Y(q1y),x2:X(q2x),y2:Y(q2y),stroke:TEXT,'stroke-width':1.3}));
+        [[q1x,q1y],[q2x,q2y]].forEach(function(p){gLab.appendChild(el('line',{x1:X(p[0]-pxx*0.12),y1:Y(p[1]-pyy*0.12),x2:X(p[0]+pxx*0.12),y2:Y(p[1]+pyy*0.12),stroke:TEXT,'stroke-width':1.3}));});
+        var midx=(q1x+q2x)/2,midy=(q1y+q2y)/2;
+        gLab.appendChild(tx({x:X(midx),y:Y(midy)+15,fill:TEXT,'font-size':11,'text-anchor':'middle','font-family':MONO,'font-weight':'bold'},'λ = '+A.lam.toFixed(2)+' m'));
+      }
+    }
+
+    /* mikrofon */
+    var Lx=X(state.L.x),Ly=Y(state.L.y);
+    gDyn.appendChild(el('line',{x1:Lx,y1:Ly,x2:X(A.nearPt.x),y2:Y(A.nearPt.y),stroke:'rgba(25,24,23,.26)','stroke-width':1,'stroke-dasharray':'5,5'}));
+    if(state.src!=='single') gDyn.appendChild(el('line',{x1:Lx,y1:Ly,x2:Lx,y2:Y(0),stroke:MUTED,'stroke-width':1.4}));
+    gDyn.appendChild(el('circle',{cx:Lx,cy:Ly,r:9,fill:RED,stroke:TEXT,'stroke-width':2}));
+    gDyn.appendChild(el('circle',{cx:Lx,cy:Ly,r:2.6,fill:TEXT}));
+    gDyn.appendChild(tx({x:Lx,y:Ly-13,fill:TEXT,'font-size':10,'text-anchor':'middle','font-family':MONO,'font-weight':'bold'},'mikrofon'));
+
+    /* pravítko vzdálenosti od arraye (spodní okraj; jen array) */
+    if(state.src!=='single') drawRuler(gLab);
+
+    /* přenos (v pozadí) */
+    var showT=state.transfer;
+    if(showT){
+      if(isMobile){ drawTransferMobile(A); }
+      else { drawTransfer(gPlot,A,GTR,true); }
+    } else {
+      var mr=document.getElementById('mResp'); if(mr) mr.innerHTML='';
+    }
+    document.getElementById('mstage').style.display=(isMobile && showT)?'block':'none';
+
+    document.getElementById('rEff').textContent=A.eff.toFixed(2);
+    document.getElementById('rPct').textContent=Math.round(A.effPct);
+  }
+
+  function drawRuler(g){
+    var y=GYpx+16;
+    g.appendChild(el('line',{x1:X(0),y1:y,x2:X(WORLD.w),y2:y,stroke:MUTED,'stroke-width':1}));
+    for(var d=0; ATOP.x+d<=WORLD.w-0.2; d+=2){
+      var xx=X(ATOP.x+d);
+      g.appendChild(el('line',{x1:xx,y1:y-3,x2:xx,y2:y+3,stroke:MUTED,'stroke-width':1}));
+      g.appendChild(tx({x:xx,y:y+15,fill:MUTED,'font-size':9,'text-anchor':'middle','font-family':MONO},d+''));
+    }
+    // marker mikrofonu
+    var dm=state.L.x-ATOP.x, xm=X(state.L.x);
+    g.appendChild(el('path',{d:'M'+xm+','+(y-6)+' l-4,-6 l8,0 z',fill:RED}));
+    g.appendChild(tx({x:xm,y:y-14,fill:RED,'font-size':10,'text-anchor':'middle','font-family':MONO,'font-weight':'bold'},(dm>=0?dm.toFixed(1):'—')+' m'));
+  }
+
+  /* 1/3-oktávové vážení přenosu */
+  function drawTransfer(g,A,box,showTitle){
+    g.appendChild(el('rect',{x:box.x,y:box.y,width:box.w,height:box.h,fill:'#FFFFFF',stroke:LINE,'stroke-width':.8,opacity:.96}));
+    if(showTitle) g.appendChild(tx({x:box.x+8,y:box.y+13,fill:GOLD,'font-size':10,'font-family':MONO,'font-weight':'bold','letter-spacing':'.08em'},'PŘENOS · MIKROFON · 1/3 okt'));
+    var ML=box.x+34,MR=box.x+box.w-8,MT=box.y+(showTitle?20:10),MB=box.y+box.h-16,PW=MR-ML,PH=MB-MT;
+    var lf=Math.log10(20),hf=Math.log10(20000),dTop=10,dBot=-18;
+    function Xf(f){return ML+(Math.log10(f)-lf)/(hf-lf)*PW;}
+    function Yd(d){return MT+(dTop-d)/(dTop-dBot)*PH;}
+    [10,0,-6,-12,-18].forEach(function(d){
+      g.appendChild(el('line',{x1:ML,y1:Yd(d),x2:MR,y2:Yd(d),stroke:d===0?'rgba(25,24,23,.26)':LINE,'stroke-width':d===0?1:.5}));
+      g.appendChild(tx({x:ML-5,y:Yd(d)+3,fill:MUTED,'font-size':8.5,'text-anchor':'end','font-family':MONO},(d>0?'+':'')+d));});
+    [20,100,1000,10000,20000].forEach(function(f){
+      g.appendChild(el('line',{x1:Xf(f),y1:MT,x2:Xf(f),y2:MB,stroke:LINE,'stroke-width':.5,opacity:.6}));
+      g.appendChild(tx({x:Xf(f),y:MB+11,fill:MUTED,'font-size':8.5,'text-anchor':'middle','font-family':MONO},f>=1000?(f/1000)+'k':f));});
+    // syrová jemná odezva → výkon → 1/3-okt průměr
+    var rChord=A.dist, Nmod=A.src.modules, isLA=(A.src.kind!=='single');
+    var rArc=isLA?distsTo(sampleArc(A.src,32),state.L):rChord;
+    var NF=300, ff=[], pw=[];
+    for(var i=0;i<=NF;i++){var f=20*Math.pow(1000,i/NF), r=(isLA&&f>1000)?rArc:rChord;
+      var db=respDB(r,f,Nmod,isLA); ff.push(f); pw.push(Math.pow(10,db/10));}
+    var d='';
+    for(i=0;i<=NF;i++){
+      var flo=ff[i]*Math.pow(2,-1/6), fhi=ff[i]*Math.pow(2,1/6), sum=0,cnt=0;
+      for(var j=Math.max(0,i-8);j<=Math.min(NF,i+8);j++){if(ff[j]>=flo&&ff[j]<=fhi){sum+=pw[j];cnt++;}}
+      var sdb=10*Math.log10(sum/Math.max(1,cnt)+1e-12), dc=sdb; if(dc<dBot-3)dc=dBot-3; if(dc>dTop)dc=dTop;
+      d+=(i?'L':'M')+Xf(ff[i]).toFixed(1)+' '+Yd(dc).toFixed(1);
+    }
+    // CPL vodicí křivka
+    if(state.cpl!==0){var ds='';for(i=0;i<=NF;i++){var sh=cplShelf(ff[i]);ds+=(i?'L':'M')+Xf(ff[i]).toFixed(1)+' '+Yd(Math.max(dBot,Math.min(dTop,sh))).toFixed(1);}
+      g.appendChild(el('path',{d:ds,fill:'none',stroke:GOLD,'stroke-width':.9,opacity:.5,'stroke-dasharray':'4,3'}));}
+    g.appendChild(el('path',{d:d,fill:'none',stroke:TEXT,'stroke-width':1.6,'stroke-linejoin':'round'}));
+    // vybraná frekvence
+    var fx=Xf(state.f); g.appendChild(el('line',{x1:fx,y1:MT,x2:fx,y2:MB,stroke:RED,'stroke-width':1.2}));
+    var rS=(isLA&&state.f>1000)?rArc:rChord, dbS=respDB(rS,state.f,Nmod,isLA), dsv=dbS;if(dsv<dBot)dsv=dBot;if(dsv>dTop)dsv=dTop;
+    g.appendChild(el('circle',{cx:fx,cy:Yd(dsv),r:3.3,fill:RED,stroke:'#fff','stroke-width':1}));
+  }
+
+  /* (drawLOD odstraněno) */
+
+  var mRespSvg=document.getElementById('mResp');
+  function drawTransferMobile(A){
+    if(!mRespSvg)return;
+    mRespSvg.innerHTML='';
+    var g=el('g',{}); mRespSvg.appendChild(g);
+    drawTransfer(g,A,{x:0,y:0,w:820,h:200},true);
+  }
+
+  /* ---------- frekvence (log) ---------- */
+  var FMIN=20,FMAX=20000,LR=Math.log(FMAX/FMIN);
+  function tToF(t){return FMIN*Math.exp(LR*t);}
+  function fToT(f){return Math.log(f/FMIN)/LR;}
+  function niceF(f){return f>=1000?(f/1000).toFixed(f>=9950?0:1).replace(/\.0$/,'')+' kHz':Math.round(f)+' Hz';}
+  var freq=document.getElementById('freq');
+  function setFreqUI(){var f=state.f;
+    document.getElementById('fVal').textContent=f>=1000?(f/1000).toFixed(2).replace(/\.?0+$/,''):Math.round(f);
+    document.getElementById('fUnit').textContent=f>=1000?'kHz':'Hz';
+    document.getElementById('lamVal').textContent=(C/f).toFixed(2)+' m';}
+  function placeMark(){var Ls=SRC_LEN[state.src],t=fToT(C/Ls);document.getElementById('lmark').style.left=(t*100)+'%';}
+  (function(){var host=document.getElementById('fticks');[20,100,1000,10000,20000].forEach(function(f){
+    var s=document.createElement('span');s.style.left=(fToT(f)*100)+'%';s.textContent=f>=1000?(f/1000)+'k':f;host.appendChild(s);});})();
+  freq.addEventListener('input',function(){state.f=tToF(freq.value/1000);setFreqUI();render();});
+
+  /* ---------- přepínače zdroje ---------- */
+  document.getElementById('srcSeg').addEventListener('click',function(e){
+    var b=e.target.closest('button');if(!b)return;
+    state.src=b.dataset.src;
+    [].forEach.call(this.children,function(x){x.setAttribute('aria-pressed',x===b?'true':'false');});
+    applyLayout();                                     // přepne měřítko (single = 4× zoom)
+    state.L=(state.src==='single')?{x:WORLD.w*0.5,y:WORLD.h*0.5}:{x:8,y:EAR};
+    placeMark();render();
+  });
+  /* ---------- toggly ---------- */
+  function wire(id,sw,key){var box=document.getElementById(id);
+    box.addEventListener('change',function(){state[key]=box.checked;document.getElementById(sw).classList.toggle('on',box.checked);render();});}
+  wire('tglF','swF','fresnel');wire('tglL','swL','labels');wire('tglA','swA','aim');wire('tglT','swT','transfer');
+  /* ---------- CPL ---------- */
+  function setCpl(v){state.cpl=Math.max(-10,Math.min(10,v));
+    document.getElementById('cplV').textContent=(state.cpl>0?'+':'')+state.cpl+' dB';render();}
+  document.getElementById('cplM').addEventListener('click',function(){setCpl(state.cpl-1);});
+  document.getElementById('cplP').addEventListener('click',function(){setCpl(state.cpl+1);});
+
+  /* ---------- tažení mikrofonu (volně po celém canvasu) ---------- */
+  var dragging=false;
+  function toV(clientX,clientY){var r=scene.getBoundingClientRect();
+    return {vx:(clientX-r.left)/r.width*VBW, vy:(clientY-r.top)/r.height*VBH};}
+  function moveTo(clientX,clientY){
+    var v=toV(clientX,clientY);
+    var w={x:(v.vx-MXpx)/S, y:(GYpx-v.vy)/S};
+    var m=8/S;                                            // ~8px okraj pro kolečko
+    if(state.src==='single'){                             // 15": mikrofon až do krajů canvasu
+      w.x=Math.max((0-MXpx)/S+m, Math.min((VBW-MXpx)/S-m, w.x));
+      w.y=Math.max((GYpx-VBH)/S+m, Math.min(GYpx/S-m, w.y));
+    }else{                                                // array: nad zemí, kus od kraje
+      w.x=Math.max(0.3,Math.min(WORLD.w-0.2,w.x));
+      w.y=Math.max(0.3,Math.min(WORLD.h-0.2,w.y));
+    }
+    state.L=w;render();
+  }
+  scene.addEventListener('pointerdown',function(e){dragging=true;try{scene.setPointerCapture(e.pointerId);}catch(x){}moveTo(e.clientX,e.clientY);e.preventDefault();});
+  scene.addEventListener('pointermove',function(e){if(dragging){moveTo(e.clientX,e.clientY);e.preventDefault();}});
+  function up(e){dragging=false;try{scene.releasePointerCapture(e.pointerId);}catch(x){}}
+  scene.addEventListener('pointerup',up);scene.addEventListener('pointercancel',up);
+
+  /* ---------- sticky stín (jen freqbar) ---------- */
+  var fb=document.getElementById('freqbar');
+  window.addEventListener('scroll',function(){fb.classList.toggle('stuck',fb.getBoundingClientRect().top<=0.5);},{passive:true});
+
+  /* ---------- init ---------- */
+  applyLayout();
+  state.f=tToF(freq.value/1000);setFreqUI();placeMark();render();
+  function onLayoutChange(){ applyLayout(); render(); }
+  if(mq.addEventListener) mq.addEventListener('change',onLayoutChange); else mq.addListener(onLayoutChange);
+  var rzT=null;
+  window.addEventListener('resize',function(){ clearTimeout(rzT); rzT=setTimeout(onLayoutChange,150); });
+})();
+</script>
+</body>
+</html>
