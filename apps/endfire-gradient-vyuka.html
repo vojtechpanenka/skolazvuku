@@ -27,7 +27,7 @@ h2{font-size:clamp(26px,3.6vw,40px);line-height:1.14;font-weight:bold;letter-spa
 .sec-intro{max-width:66ch;margin-bottom:36px}
 
 /* ===== MODUL: sub array ===== */
-.sub-array{--sum:#2E7D4F;--cancel:#C0392B}
+.sub-array{--sum:#2E7D4F;--cancel:#C0392B;overflow-anchor:none}
 
 /* nastavení */
 .sub-array .sa-controls{display:flex;align-items:stretch;gap:1px;
@@ -534,22 +534,49 @@ h2{font-size:clamp(26px,3.6vw,40px);line-height:1.14;font-weight:bold;letter-spa
   function scrollToGradient(){
     var head=document.getElementById('grHead');
     var reduce=window.matchMedia('(prefers-reduced-motion:reduce)').matches;
-    function go(){
+    /* Cíl se počítá až v okamžiku posunu — rozložení se sbalením sekce mění. */
+    function target(){
       var bar=compact?setBar:ctrlBar;
       var off=(bar&&bar.offsetHeight)?bar.offsetHeight:0;
       var y=window.pageYOffset+head.getBoundingClientRect().top-off-12;
-      window.scrollTo({top:Math.max(0,y),behavior:reduce?'auto':'smooth'});
+      var max=Math.max(0,document.documentElement.scrollHeight-window.innerHeight);
+      return Math.max(0,Math.min(y,max));
+    }
+    function go(){
+      window.scrollTo({top:target(),behavior:reduce?'auto':'smooth'});
+      if(reduce) return;
+      /* Mobilní prohlížeče plynulé rolování občas přeruší nebo ho zahodí,
+         když se mezitím dopočítá rozložení. Po dojezdu proto pozici ověříme
+         a případně dorovnáme skokem. */
+      var tries=0;
+      (function settle(){
+        setTimeout(function(){
+          var t=target();
+          if(Math.abs(window.pageYOffset-t)>4){
+            window.scrollTo({top:t,behavior:'auto'});
+            if(++tries<3) settle();
+          }
+        },tries?160:520);
+      })();
     }
     if(reduce){go();return;}
     var done=false;
     function fire(){if(done)return;done=true;
-      efBlock.removeEventListener('transitionend',fire);go();}
+      efBlock.removeEventListener('transitionend',fire);
+      requestAnimationFrame(function(){requestAnimationFrame(go);});
+    }
     efBlock.addEventListener('transitionend',fire);
-    setTimeout(fire,520);   /* pojistka, kdyby transitionend nedorazil */
+    setTimeout(fire,560);           /* pojistka, kdyby transitionend nedorazil */
   }
+  /* Po doteku odebereme fokus skrytému checkboxu — jinak ho mobilní prohlížeč
+     sám roluje do zorného pole a přebije naše doskrolování. U klávesnice fokus
+     necháváme. */
+  var byPointer=false;
+  rotLab.addEventListener('pointerdown',function(){byPointer=true;});
   rotBox.addEventListener('change',function(){
     rotated=rotBox.checked; applyRot();
-    if(rotated) scrollToGradient();
+    if(rotated){ if(byPointer) rotBox.blur(); scrollToGradient(); }
+    byPointer=false;
   });
   /* Stín pod plovoucím pruhem až ve chvíli, kdy se opravdu přilepí k hornímu okraji. */
   var ctrlBar=document.querySelector('.sa-controls'), setBar=document.querySelector('.sa-set');
