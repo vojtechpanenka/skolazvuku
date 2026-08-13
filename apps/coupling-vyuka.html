@@ -78,6 +78,8 @@ h2{font-size:clamp(23px,3vw,34px);line-height:1.1;font-weight:bold;letter-spacin
 .ca .mstage{display:none;background:var(--bg2);border:1px solid var(--line);border-top:none}
 .ca svg.mresp{display:block;width:100%;height:auto}
 .ca .hot{cursor:pointer}
+/* v lupě nezvětšovat tloušťku čar, ať zůstane kresba čistá */
+.ca .zoomg polygon,.ca .zoomg line{vector-effect:non-scaling-stroke}
 
 .ca .foot{margin-top:12px;font-size:12.5px;color:var(--muted);line-height:1.55}
 .ca .foot b{color:var(--text)}
@@ -201,8 +203,8 @@ h2{font-size:clamp(23px,3vw,34px);line-height:1.1;font-weight:bold;letter-spacin
   var LO_DN={S:76, VBW:1160, SW:744, VBH:560, MXpx:12, GYpx:520, inset:true,  mw:1160, mh:340};
   var LO_MN={S:82, VBW:820,  SW:820, VBH:620, MXpx:12, GYpx:578, inset:false, mw:820,  mh:420};
   /* daleká pozice – scéna je široký pruh */
-  var LO_DF={S:30, VBW:1160, SW:1160,VBH:272, MXpx:12, GYpx:230, inset:false, mw:1160, mh:340};
-  var LO_MF={S:21, VBW:820,  SW:820, VBH:206, MXpx:12, GYpx:164, inset:false, mw:820,  mh:420};
+  var LO_DF={S:30, VBW:1160, SW:1160,VBH:318, MXpx:12, GYpx:275, inset:false, mw:1160, mh:340};
+  var LO_MF={S:21, VBW:820,  SW:820, VBH:238, MXpx:12, GYpx:196, inset:false, mw:820,  mh:420};
   var S, VBW, VBH, MXpx, GYpx, WORLD, INSET=true, MW=1160, MH=260, isMobile=false;
   var D_REF=8.0;
   var mq=window.matchMedia('(max-width:760px)');
@@ -377,9 +379,9 @@ h2{font-size:clamp(23px,3vw,34px);line-height:1.1;font-weight:bold;letter-spacin
   }
   function drawZoom(g){
     var bb=arrayBBox(), pad=12;
-    /* zvětšení: aspoň 2×, ideálně na ~240 px výšky, ale vždy tak, aby se panel vešel do plátna */
-    var fit=Math.min((VBW*0.55)/(bb.w+pad*2), (VBH-20)/(bb.h+pad*2));
-    var K=Math.max(2, Math.min(240/bb.h, fit));
+    /* zvětšení: aspoň 2×, ideálně na ~340 px výšky, ale vždy tak, aby se panel vešel do plátna */
+    var fit=Math.min((VBW*0.8)/(bb.w+pad*2), (VBH-14)/(bb.h+pad*2));
+    var K=Math.max(2, Math.min(340/bb.h, fit));
     var pw=(bb.w+pad*2)*K, ph=(bb.h+pad*2)*K;
     var px=Math.min(Math.max(pw/2+6,VBW/2), VBW-pw/2-6);
     var py=Math.min(Math.max(ph/2+6,VBH/2), VBH-ph/2-6);
@@ -390,7 +392,8 @@ h2{font-size:clamp(23px,3vw,34px);line-height:1.1;font-weight:bold;letter-spacin
     g.appendChild(el('rect',{x:px-pw/2,y:py-ph/2,width:pw,height:ph,fill:'#FFFFFF',
       stroke:GOLD,'stroke-width':1.4}));
     var cx=bb.x+bb.w/2, cy=bb.y+bb.h/2;
-    var gg=el('g',{transform:'translate('+(px-K*cx).toFixed(2)+','+(py-K*cy).toFixed(2)+') scale('+K+')'});
+    var gg=el('g',{'class':'zoomg',
+      transform:'translate('+(px-K*cx).toFixed(2)+','+(py-K*cy).toFixed(2)+') scale('+K+')'});
     g.appendChild(gg);
     BOXES.forEach(function(b,i){drawLAbox(gg,b,0.30,!!state.on[i],false,i===AIMED);});
     BOXES.forEach(function(b,i){
