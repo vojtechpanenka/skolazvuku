@@ -24,6 +24,16 @@ h2{font-size:clamp(23px,3vw,34px);line-height:1.1;font-weight:bold;letter-spacin
 .accent{color:var(--red)}
 .ca{--sum:#2E7D4F;--cancel:#C0392B}
 
+/* pořadí bloků – desktop: ovládání, scéna, odečty; mobil viz media query */
+.ca .wrap{display:flex;flex-direction:column}
+.ca #ctlA{order:1}
+.ca #ctlB{order:2;border-top:none;display:none}
+.ca #ctlB.show{display:grid}
+.ca .stage{order:3}
+.ca .rdrow{order:4}
+.ca .mstage{order:5}
+.ca .foot{order:6}
+
 /* ovládací řada */
 .ca .ctlrow{display:grid;grid-template-columns:repeat(auto-fit,minmax(224px,1fr));gap:1px;
   background:var(--line);border:1px solid var(--line);margin-top:16px}
@@ -79,6 +89,12 @@ h2{font-size:clamp(23px,3vw,34px);line-height:1.1;font-weight:bold;letter-spacin
   .ca .ctlrow{grid-template-columns:1fr}
   .ca .rdrow{grid-template-columns:1fr 1fr}
   .ca .cell{padding:10px 12px}
+  /* ergonomické pořadí na telefonu: zobrazení → mikrofon → moduly → array → filtry → graf → odečty */
+  .ca #ctlA{display:flex;flex-direction:column-reverse}
+  .ca .stage{order:2}
+  .ca #ctlB{order:3}
+  .ca .mstage{order:4}
+  .ca .rdrow{order:5}
   .ca .hfcrow{gap:10px}
   .ca .hfcrow > *{flex:1 1 auto}
   .ca .sw{justify-content:flex-start}
@@ -95,7 +111,7 @@ h2{font-size:clamp(23px,3vw,34px);line-height:1.1;font-weight:bold;letter-spacin
     <h2>Coupling - <span class="accent">line array</span></h2>
     <p class="lead">Mikrofon je pevně na jednom místě. Klikáním zapínejte a vypínejte jednotlivé moduly a sledujte, co se stane s odezvou v místě mikrofonu: na basech přispívají všechny moduly, na výškách jen ty, které na mikrofon míří.</p>
 
-    <div class="ctlrow">
+    <div class="ctlrow" id="ctlA">
       <div class="cell">
         <span class="lab">Moduly</span>
         <div class="seg-btns" id="modSeg">
@@ -110,6 +126,22 @@ h2{font-size:clamp(23px,3vw,34px);line-height:1.1;font-weight:bold;letter-spacin
           <button data-far="1" aria-pressed="false">Daleko</button>
         </div>
       </div>
+      <div class="cell">
+        <span class="lab">Zobrazení</span>
+        <div class="toggles">
+          <label class="sw on" id="swA"><input type="checkbox" id="tglA" checked><i></i>Směrovost</label>
+          <label class="sw on" id="swL"><input type="checkbox" id="tglL" checked><i></i>Popisky</label>
+          <label class="sw on" id="swT"><input type="checkbox" id="tglT" checked><i></i>Přenos</label>
+          <label class="sw" id="swF"><input type="checkbox" id="tglF"><i></i>Filtry</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="stage">
+      <svg class="scene" id="scene" viewBox="0 0 1160 470" role="img" aria-label="Line array s osmi moduly, pevný mikrofon a přenos v jeho místě."></svg>
+    </div>
+
+    <div class="ctlrow" id="ctlB">
       <div class="cell">
         <span class="lab">Coupling filtr</span>
         <div class="hfcrow">
@@ -128,18 +160,6 @@ h2{font-size:clamp(23px,3vw,34px);line-height:1.1;font-weight:bold;letter-spacin
           <label class="sw" id="swAir"><input type="checkbox" id="tglAir"><i></i>Útlum vzduchu</label>
         </div>
       </div>
-      <div class="cell grow">
-        <span class="lab">Zobrazení</span>
-        <div class="toggles">
-          <label class="sw on" id="swA"><input type="checkbox" id="tglA" checked><i></i>Směrovost</label>
-          <label class="sw on" id="swL"><input type="checkbox" id="tglL" checked><i></i>Popisky</label>
-          <label class="sw on" id="swT"><input type="checkbox" id="tglT" checked><i></i>Přenos</label>
-        </div>
-      </div>
-    </div>
-
-    <div class="stage">
-      <svg class="scene" id="scene" viewBox="0 0 1160 470" role="img" aria-label="Line array s osmi moduly, pevný mikrofon a přenos v jeho místě."></svg>
     </div>
 
     <div class="rdrow">
@@ -177,11 +197,11 @@ h2{font-size:clamp(23px,3vw,34px);line-height:1.1;font-weight:bold;letter-spacin
   function tx(a,s){var e=el('text',a);e.textContent=s;return e;}
 
   /* ---------- svět (metry) ---------- */
-  /* blízká pozice – array velký, graf vsazený vpravo do scény */
-  var LO_DN={S:76, VBW:1160, SW:744, VBH:560, MXpx:12, GYpx:520, inset:true,  mw:1160, mh:260};
+  /* blízká pozice na desktopu – graf vsazený vpravo do scény, kreslený vzadu (jako ve Fresnelu) */
+  var LO_DN={S:76, VBW:1160, SW:744, VBH:560, MXpx:12, GYpx:520, inset:true,  mw:1160, mh:340};
   var LO_MN={S:82, VBW:820,  SW:820, VBH:620, MXpx:12, GYpx:578, inset:false, mw:820,  mh:420};
-  /* daleká pozice – scéna je široký pruh, graf pod ní */
-  var LO_DF={S:30, VBW:1160, SW:1160,VBH:272, MXpx:12, GYpx:230, inset:false, mw:1160, mh:280};
+  /* daleká pozice – scéna je široký pruh */
+  var LO_DF={S:30, VBW:1160, SW:1160,VBH:272, MXpx:12, GYpx:230, inset:false, mw:1160, mh:340};
   var LO_MF={S:21, VBW:820,  SW:820, VBH:206, MXpx:12, GYpx:164, inset:false, mw:820,  mh:420};
   var S, VBW, VBH, MXpx, GYpx, WORLD, INSET=true, MW=1160, MH=260, isMobile=false;
   var D_REF=8.0;
@@ -337,8 +357,9 @@ h2{font-size:clamp(23px,3vw,34px);line-height:1.1;font-weight:bold;letter-spacin
       g.appendChild(el('polygon',{points:shell,fill:'none',stroke:SUM,'stroke-width':2}));
   }
 
-  /* ---------- mobilní lupa na array ---------- */
+  /* ---------- lupa na array (mobil vždy, na desktopu v dalekém režimu) ---------- */
   var zoomT=null;
+  function useZoom(){return isMobile||state.far;}
   function bumpZoom(){clearTimeout(zoomT);
     zoomT=setTimeout(function(){state.zoom=false;render();},2000);}
   function closeZoom(){clearTimeout(zoomT);state.zoom=false;}
@@ -355,7 +376,10 @@ h2{font-size:clamp(23px,3vw,34px);line-height:1.1;font-weight:bold;letter-spacin
     return {x:mnx,y:mny,w:mxx-mnx,h:mxy-mny};
   }
   function drawZoom(g){
-    var K=2, bb=arrayBBox(), pad=12;
+    var bb=arrayBBox(), pad=12;
+    /* zvětšení: aspoň 2×, ideálně na ~240 px výšky, ale vždy tak, aby se panel vešel do plátna */
+    var fit=Math.min((VBW*0.55)/(bb.w+pad*2), (VBH-20)/(bb.h+pad*2));
+    var K=Math.max(2, Math.min(240/bb.h, fit));
     var pw=(bb.w+pad*2)*K, ph=(bb.h+pad*2)*K;
     var px=Math.min(Math.max(pw/2+6,VBW/2), VBW-pw/2-6);
     var py=Math.min(Math.max(ph/2+6,VBH/2), VBH-ph/2-6);
@@ -371,8 +395,8 @@ h2{font-size:clamp(23px,3vw,34px);line-height:1.1;font-weight:bold;letter-spacin
     BOXES.forEach(function(b,i){drawLAbox(gg,b,0.30,!!state.on[i],false,i===AIMED);});
     BOXES.forEach(function(b,i){
       var mx=(X(b.a.x)+X(b.b.x))/2, my=(Y(b.a.y)+Y(b.b.y))/2;
-      gg.appendChild(tx({x:mx-b.nx*0.16*S,y:my+b.ny*0.16*S+2.5,fill:state.on[i]?TEXT:MUTED,
-        'font-size':7,'text-anchor':'middle','font-family':MONO,'font-weight':'bold'},(i+1)+''));
+      gg.appendChild(tx({x:mx-b.nx*0.16*S,y:my+b.ny*0.16*S+2.2,fill:state.on[i]?TEXT:MUTED,
+        'font-size':(13/K).toFixed(2),'text-anchor':'middle','font-family':MONO,'font-weight':'bold'},(i+1)+''));
     });
     BOXES.forEach(function(b,i){hitArea(gg,b,i,true);});
   }
@@ -388,7 +412,7 @@ h2{font-size:clamp(23px,3vw,34px);line-height:1.1;font-weight:bold;letter-spacin
             (ax-npx*D-ux*pad)+' '+(ay-npy*D-uy*pad) ].join(' ');
     var e=el('polygon',{points:p,fill:'transparent','class':'hot'});
     e.addEventListener('pointerdown',function(ev){ev.preventDefault();ev.stopPropagation();
-      if(isMobile&&!inZoom){                            // první ťuknutí jen vytáhne lupu
+      if(useZoom()&&!inZoom){                           // první kliknutí jen vytáhne lupu
         state.zoom=true;bumpZoom();render();return;}
       state.on[i]=state.on[i]?0:1;
       state.hover=(ev.pointerType==='mouse')?i:-1;      // na dotyku nenechávat zvýraznění viset
@@ -482,7 +506,7 @@ h2{font-size:clamp(23px,3vw,34px);line-height:1.1;font-weight:bold;letter-spacin
     document.getElementById('mstage').style.display=(state.transfer&&!INSET)?'block':'none';
 
     /* klikací plochy nahoře; na mobilu při otevřené lupě jen v lupě */
-    if(state.zoom&&isMobile) drawZoom(gHit);
+    if(state.zoom&&useZoom()) drawZoom(gHit);
     else BOXES.forEach(function(b,i){hitArea(gHit,b,i,false);});
 
     /* readouty */
@@ -584,6 +608,19 @@ h2{font-size:clamp(23px,3vw,34px);line-height:1.1;font-weight:bold;letter-spacin
   hfcSeg.addEventListener('click',function(e){
     var b=e.target.closest('button');if(!b)return;
     setHfc(+b.dataset.hfc);render();});
+  /* skrývání panelu filtrů – schované filtry se vrací do výchozího stavu */
+  document.getElementById('tglF').addEventListener('change',function(){
+    var on=this.checked;
+    document.getElementById('ctlB').classList.toggle('show',on);
+    document.getElementById('swF').classList.toggle('on',on);
+    if(!on){
+      setCpl(0,true); setHfc(0);
+      state.opt=false; state.air=false;
+      [['tglO','swO'],['tglAir','swAir']].forEach(function(p){
+        document.getElementById(p[0]).checked=false;
+        document.getElementById(p[1]).classList.remove('on');});
+    }
+    render();});
   /* útlum vzduchu – po vypnutí nemá HFC co kompenzovat, takže se resetuje */
   (function(){var box=document.getElementById('tglAir');
     box.addEventListener('change',function(){
