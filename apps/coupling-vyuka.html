@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Coupling line arraye | Škola zvuku</title>
+<meta name="description" content="Interaktivní ukázka couplingu line arraye – vypínejte jednotlivé moduly a sledujte přenos v místě mikrofonu.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23F5F2EA'/><circle cx='50' cy='50' r='30' fill='%23BE3B20'/></svg>">
+<style>
+:root{
+  --bg:#F5F2EA; --bg2:#FFFFFF; --bg3:#EFEBE0; --bg4:#E6E1D3;
+  --text:#191917; --muted:#6F6A61; --line:#D5D0C2;
+  --red:#BE3B20; --gold:#8F6B22; --sum:#2E7D4F; --cancel:#C0392B;
+  --maxw:1180px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:Arial,Helvetica,"Helvetica Neue",sans-serif;
+  font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased}
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 20px}
+section{padding:26px 0 40px}
+.eyebrow{font-size:12px;font-weight:bold;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);margin-bottom:8px}
+h2{font-size:clamp(23px,3vw,34px);line-height:1.1;font-weight:bold;letter-spacing:-.015em;margin-bottom:8px}
+.lead{font-size:15px;color:var(--muted);line-height:1.45}
+.accent{color:var(--red)}
+.ca{--sum:#2E7D4F;--cancel:#C0392B}
+
+/* ovládací řada */
+.ca .ctlrow{display:grid;grid-template-columns:repeat(auto-fit,minmax(224px,1fr));gap:1px;
+  background:var(--line);border:1px solid var(--line);margin-top:16px}
+.ca .rdrow{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;
+  background:var(--line);border:1px solid var(--line);border-top:none}
+.ca .cell{background:var(--bg4);padding:8px 12px;display:flex;flex-direction:column;gap:6px;justify-content:center;min-width:0}
+.ca .cell > .lab{font-size:10px;font-weight:bold;letter-spacing:.11em;text-transform:uppercase;color:var(--gold)}
+.ca .seg-btns{display:flex;gap:1px;background:var(--line);border:1px solid var(--line);flex-wrap:wrap}
+.ca .seg-btns button{font-family:inherit;font-size:12.5px;font-weight:bold;background:var(--bg2);color:var(--muted);
+  border:none;padding:7px 12px;cursor:pointer;white-space:nowrap;flex:1 1 auto;min-width:56px}
+.ca .seg-btns button:hover{color:var(--text);background:#fbfaf6}
+.ca .seg-btns button[aria-pressed="true"]{background:var(--red);color:var(--bg)}
+.ca .seg-btns button[aria-pressed="true"]:hover{background:var(--red);color:var(--bg)}
+.ca .toggles{display:flex;gap:6px;flex-wrap:wrap}
+.ca .hfcrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.ca .sw{display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:var(--muted);
+  white-space:nowrap;user-select:none;border:1.5px solid var(--line);padding:4px 8px 4px 5px}
+.ca .sw:hover{border-color:var(--muted)}
+.ca .sw.on{border-color:var(--gold);background:rgba(143,107,34,.10);color:var(--text)}
+.ca .sw input{position:absolute;opacity:0;pointer-events:none}
+.ca .sw i{box-sizing:border-box;width:30px;height:17px;flex:0 0 30px;position:relative;border-radius:99px;
+  background:#C7C1B2;transition:background .2s}
+.ca .sw i::after{content:"";position:absolute;top:2.5px;left:2.5px;width:12px;height:12px;border-radius:50%;
+  background:#fff;box-shadow:0 1px 2px rgba(25,24,23,.22);transition:transform .2s}
+.ca .sw input:checked ~ i{background:var(--gold)}
+.ca .sw input:checked ~ i::after{transform:translateX(13px)}
+.ca .hint{font-size:12px;color:var(--muted);white-space:nowrap}
+.ca .hint b{color:var(--text)}
+.ca .cpl{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--muted)}
+.ca .cpl button{font-family:inherit;font-weight:bold;font-size:15px;line-height:1;width:24px;height:22px;
+  border:1px solid var(--line);background:var(--bg2);color:var(--text);cursor:pointer}
+.ca .cpl button:hover{border-color:var(--muted)}
+.ca .cpl .cplv{font-family:ui-monospace,"SF Mono",Consolas,monospace;font-weight:bold;color:var(--text);min-width:52px;text-align:center}
+.ca .rd{font-family:ui-monospace,"SF Mono",Consolas,monospace;font-size:16px;font-weight:bold;color:var(--text)}
+.ca .rd small{font-size:11px;color:var(--muted);font-weight:normal}
+.ca .rd.g{color:var(--sum)}
+.ca .rd.r{color:var(--cancel)}
+
+/* canvas */
+.ca .stage{background:var(--bg2);border:1px solid var(--line);border-top:none}
+.ca svg.scene{display:block;width:100%;height:auto;touch-action:manipulation}
+.ca .mstage{display:none;background:var(--bg2);border:1px solid var(--line);border-top:none}
+.ca svg.mresp{display:block;width:100%;height:auto}
+.ca .hot{cursor:pointer}
+
+.ca .foot{margin-top:12px;font-size:12.5px;color:var(--muted);line-height:1.55}
+.ca .foot b{color:var(--text)}
+
+@media (max-width:760px){
+  section{padding:16px 0 26px}
+  .wrap{padding:0 11px}
+  .ca .seg-btns button{font-size:12px;padding:8px;min-width:0}
+  .ca .ctlrow{grid-template-columns:1fr}
+  .ca .rdrow{grid-template-columns:1fr 1fr}
+  .ca .cell{padding:10px 12px}
+  .ca .hfcrow{gap:10px}
+  .ca .hfcrow > *{flex:1 1 auto}
+  .ca .sw{justify-content:flex-start}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<section class="ca">
+  <div class="wrap">
+
+    <div class="eyebrow">Šíření a směrovost</div>
+    <h2>Coupling - <span class="accent">line array</span></h2>
+    <p class="lead">Mikrofon je pevně na jednom místě. Klikáním zapínejte a vypínejte jednotlivé moduly a sledujte, co se stane s odezvou v místě mikrofonu: na basech přispívají všechny moduly, na výškách jen ty, které na mikrofon míří.</p>
+
+    <div class="ctlrow">
+      <div class="cell">
+        <span class="lab">Moduly</span>
+        <div class="seg-btns" id="modSeg">
+          <button data-act="one">Jeden</button>
+          <button data-act="all">Všechny</button>
+        </div>
+      </div>
+      <div class="cell">
+        <span class="lab">Mikrofon</span>
+        <div class="seg-btns" id="micSeg">
+          <button data-far="0" aria-pressed="true">Blízko</button>
+          <button data-far="1" aria-pressed="false">Daleko</button>
+        </div>
+      </div>
+      <div class="cell">
+        <span class="lab">Coupling filtr</span>
+        <div class="hfcrow">
+          <div class="cpl"><button id="cplM" title="ubrat">−</button><span class="cplv" id="cplV">0 dB</span><button id="cplP" title="přidat">+</button></div>
+          <label class="sw" id="swO"><input type="checkbox" id="tglO"><i></i>Optimalizovat průběh</label>
+        </div>
+      </div>
+      <div class="cell">
+        <span class="lab">HFC</span>
+        <div class="hfcrow">
+          <div class="seg-btns" id="hfcSeg">
+            <button data-hfc="0" aria-pressed="true">0</button>
+            <button data-hfc="1" aria-pressed="false">HFC1</button>
+            <button data-hfc="2" aria-pressed="false">HFC2</button>
+          </div>
+          <label class="sw" id="swAir"><input type="checkbox" id="tglAir"><i></i>Útlum vzduchu</label>
+        </div>
+      </div>
+      <div class="cell grow">
+        <span class="lab">Zobrazení</span>
+        <div class="toggles">
+          <label class="sw on" id="swA"><input type="checkbox" id="tglA" checked><i></i>Směrovost</label>
+          <label class="sw on" id="swL"><input type="checkbox" id="tglL" checked><i></i>Popisky</label>
+          <label class="sw on" id="swT"><input type="checkbox" id="tglT" checked><i></i>Přenos</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="stage">
+      <svg class="scene" id="scene" viewBox="0 0 1160 470" role="img" aria-label="Line array s osmi moduly, pevný mikrofon a přenos v jeho místě."></svg>
+    </div>
+
+    <div class="rdrow">
+      <div class="cell"><span class="lab">Zapnuté moduly</span><span class="rd"><span id="rN">8</span> <small>/ 8</small></span></div>
+      <div class="cell"><span class="lab">Přenos na 250 Hz</span><span class="rd"><span id="rLo">–</span> <small>dB</small></span></div>
+      <div class="cell"><span class="lab">Přenos na 4 kHz</span><span class="rd"><span id="rHi">–</span> <small>dB</small></span></div>
+      <div class="cell"><span class="lab">Rozdíl basy − výšky</span><span class="rd" id="rDwrap"><span id="rD">–</span> <small>dB</small></span></div>
+    </div>
+
+    <div class="mstage" id="mstage">
+      <svg class="mresp" id="mResp" viewBox="0 0 820 200" role="img" aria-label="Přenos v pozici mikrofonu."></svg>
+    </div>
+
+    <p class="foot">
+      <b>Na basech</b> je vlnová délka mnohem větší než modul, každý modul je prakticky všesměrový a všechny se v místě mikrofonu sčítají – proto přidání kteréhokoli modulu přidá hlasitost.<br>
+      <b>Na výškách</b> vyzařuje modul jen do svého úhlu; do místa mikrofonu hrají pouze moduly, které na něj míří – ostatní se na přenosu skoro neprojeví.<br>
+      <b>Optimalizovat průběh</b> – každý modul má defaultně úplně rovný přenos, takže je vidět čistý coupling. Po zapnutí se průběh boxu přiblíží reálnému (na basech méně, na výškách hodně), výrobce počítá s několika moduly v systému a předem coupling částečně kompenzuje.<br>
+      <b>Mikrofon blízko/daleko</b> přepíná mezi osou modulu 6 (7,2 m) a modulu 3 (34,5 m). Na dálku míří do místa poslechu víc modulů, protože splay je nahoře jen 3–5°.<br>
+      <b>Útlum vzduchu</b> počítá podle ISO 9613-1 pro 20 °C a 50 % vlhkosti; teprve s ním má <b>HFC</b> co kompenzovat.<br>
+      <b>Coupling filtr</b> je low-shelf na 600 Hz, <b>HFC</b> je peak filtr na výškách (HFC1 +5 dB / 12 kHz na vzdálenost &gt; 25 m, HFC2 +7 dB / 11 kHz na vzdálenost &gt; 50 m); má kompenzovat útlum vzduchu.<br>
+      Na zobrazení přenosu je aplikováno 1/3-oktávové váhování; 0 dB = jeden rovný modul na 8 m, c = 343 m/s.</p>
+
+  </div>
+</section>
+
+<script>
+(function(){
+  "use strict";
+  var NS="http://www.w3.org/2000/svg", C=343;
+  var GOLD='#8F6B22', MUTED='#6F6A61', LINE='#D5D0C2', RED='#BE3B20',
+      TEXT='#191917', SUM='#2E7D4F', CANCEL='#C0392B', CABBG='#FFFFFF', GRILL='#EFEBE0';
+  var MONO='ui-monospace,"SF Mono",Consolas,monospace';
+  var OFFBG='#F2EFE6', OFFST='#C4BEAF';
+  function el(t,a){var e=document.createElementNS(NS,t);for(var k in a)e.setAttribute(k,a[k]);return e;}
+  function tx(a,s){var e=el('text',a);e.textContent=s;return e;}
+
+  /* ---------- svět (metry) ---------- */
+  /* blízká pozice – array velký, graf vsazený vpravo do scény */
+  var LO_DN={S:76, VBW:1160, SW:744, VBH:560, MXpx:12, GYpx:520, inset:true,  mw:1160, mh:260};
+  var LO_MN={S:82, VBW:820,  SW:820, VBH:620, MXpx:12, GYpx:578, inset:false, mw:820,  mh:420};
+  /* daleká pozice – scéna je široký pruh, graf pod ní */
+  var LO_DF={S:30, VBW:1160, SW:1160,VBH:272, MXpx:12, GYpx:230, inset:false, mw:1160, mh:280};
+  var LO_MF={S:21, VBW:820,  SW:820, VBH:206, MXpx:12, GYpx:164, inset:false, mw:820,  mh:420};
+  var S, VBW, VBH, MXpx, GYpx, WORLD, INSET=true, MW=1160, MH=260, isMobile=false;
+  var D_REF=8.0;
+  var mq=window.matchMedia('(max-width:760px)');
+  var scene=document.getElementById('scene');
+  var mRespSvg=document.getElementById('mResp');
+
+  function X(x){return MXpx+x*S;}
+  function Y(y){return GYpx-y*S;}
+
+  var ATOP={x:1.6,y:6.5}, SEG=1.8/8, EAR=1.7, HALF=7*Math.PI/180;
+  var SPLAYS=[3,4,5,6,8,10,12];
+  var SEL_N=5, SEL_F=2;                      // modul, na jehož ose mikrofon leží – blízko / daleko
+  var SEL=SEL_N, MIC={x:8,y:EAR};
+  var state={on:[0,0,0,0,0,0,0,0],aim:true,labels:true,transfer:true,opt:false,air:false,
+             cpl:0,hfc:0,far:false,hover:-1,zoom:false};
+
+  var GTR={x:760,y:34,w:388,h:380};          // box přenosu (desktop)
+
+  /* ---------- geometrie zdroje ---------- */
+  function buildBoxes(){
+    var ang=-Math.PI/2, x=ATOP.x, y=ATOP.y, boxes=[], i;
+    for(i=0;i<8;i++){
+      var dx=Math.cos(ang), dy=Math.sin(ang), x2=x+SEG*dx, y2=y+SEG*dy;
+      boxes.push({a:{x:x,y:y},b:{x:x2,y:y2},nx:-dy,ny:dx});
+      x=x2;y=y2;
+      if(i<7) ang-=SPLAYS[i]*Math.PI/180;
+    }
+    return boxes;
+  }
+  var BOXES=buildBoxes();
+
+  /* chordové vzorky (basy – modul jako přímka) */
+  function chordPts(bx,M){
+    var out=[],i;
+    for(i=0;i<M;i++){var t=(i+0.5)/M;out.push({x:bx.a.x+(bx.b.x-bx.a.x)*t, y:bx.a.y+(bx.b.y-bx.a.y)*t});}
+    return out;
+  }
+  /* obloukové vzorky (výšky – souosá válcová vlnoplocha zahnutá do 14°) */
+  function arcPts(bx,M){
+    var a=bx.a,b=bx.b,nx=bx.nx,ny=bx.ny;
+    var Lc=Math.hypot(b.x-a.x,b.y-a.y), R=(Lc/2)/Math.sin(HALF);
+    var Mx=(a.x+b.x)/2,My=(a.y+b.y)/2, Cx=Mx-nx*R*Math.cos(HALF), Cy=My-ny*R*Math.cos(HALF);
+    var aA=Math.atan2(a.y-Cy,a.x-Cx), aB=Math.atan2(b.y-Cy,b.x-Cx), dA=aB-aA;
+    while(dA>Math.PI)dA-=2*Math.PI; while(dA<-Math.PI)dA+=2*Math.PI;
+    var out=[],i;
+    for(i=0;i<M;i++){var t=M>1?i/(M-1):0, an=aA+dA*t; out.push({x:Cx+R*Math.cos(an), y:Cy+R*Math.sin(an)});}
+    return out;
+  }
+  function dists(pts){return pts.map(function(p){return Math.hypot(p.x-MIC.x,p.y-MIC.y);});}
+
+  /* předpočet vzdáleností – mikrofon je pevný, přepočítá se jen při změně pozice */
+  var CH=[], AR=[], PPM_C=24, PPM_A=48, OFFAX=[], AIMED=SEL_N;
+  function setMic(){
+    SEL=state.far?SEL_F:SEL_N; AIMED=SEL;
+    var b=BOXES[SEL], cx=(b.a.x+b.b.x)/2, cy=(b.a.y+b.b.y)/2, t=(EAR-cy)/b.ny;
+    MIC={x:cx+t*b.nx, y:EAR};                          // přesně na ose vybraného modulu
+    CH=[];AR=[];OFFAX=[];
+    BOXES.forEach(function(bx){
+      CH.push(dists(chordPts(bx,PPM_C)));
+      AR.push(dists(arcPts(bx,PPM_A)));
+      var mx=(bx.a.x+bx.b.x)/2, my=(bx.a.y+bx.b.y)/2;
+      var ang=Math.atan2(MIC.y-my,MIC.x-mx)-Math.atan2(bx.ny,bx.nx);
+      while(ang>Math.PI)ang-=2*Math.PI; while(ang<-Math.PI)ang+=2*Math.PI;
+      OFFAX.push(ang*180/Math.PI);
+    });
+  }
+  setMic();
+  state.on[AIMED]=1;
+
+  /* ---------- přenosový model ---------- */
+  /* přenos jednoho modulu: rovný, nebo reálný průběh boxu (na basech méně, na výškách hodně) */
+  function boxDB(f){ return state.opt ? (-10+13.5/(1+Math.pow(2700/f,1.4))) : 0; }
+  /* coupling filtr – low-shelf s měkkým rohem na 600 Hz, kompenzuje kumulaci basů */
+  function cplShelf(f){ return state.cpl*(1/(1+(f/600)*(f/600))); }
+  /* HFC – zvon na výškách, kompenzuje ztrátu výšek na velkou vzdálenost */
+  var HFC=[null,{g:5,fc:12000,q:0.9},{g:7,fc:11000,q:1.0}];
+  function hfcDB(f){ var h=HFC[state.hfc]; if(!h)return 0;
+    var d=f/h.fc-h.fc/f; return h.g/(1+h.q*h.q*d*d); }
+  function filtDB(f){ return cplShelf(f)+hfcDB(f); }
+  /* atmosférický útlum dle ISO 9613-1, 20 °C / 50 % rel. vlhkost / 101,325 kPa → dB/m */
+  var ALPHA=(function(){
+    var T=293.15, T0=293.15, T01=273.16, hr=50;
+    var psat=Math.pow(10,-6.8346*Math.pow(T01/T,1.261)+4.6151), h=hr*psat;
+    var frO=24+4.04e4*h*(0.02+h)/(0.391+h);
+    var frN=Math.pow(T/T0,-0.5)*(9+280*h*Math.exp(-4.170*(Math.pow(T/T0,-1/3)-1)));
+    return function(f){var f2=f*f;
+      return 8.686*f2*(1.84e-11*Math.pow(T/T0,0.5)+Math.pow(T/T0,-2.5)*(
+        0.01275*Math.exp(-2239.1/T)/(frO+f2/frO)+0.1068*Math.exp(-3352.0/T)/(frN+f2/frN)));};
+  })();
+  function sumDB(f){
+    var useArc=(f>1000), k=2*Math.PI*f/C, re=0, im=0, ppm=useArc?PPM_A:PPM_C, any=false, i, j, r;
+    var ka=state.air?ALPHA(f)*0.1151293:0;             // útlum vzduchu na amplitudu: e^(-ka·r)
+    for(i=0;i<8;i++){
+      if(!state.on[i])continue; any=true;
+      r=useArc?AR[i]:CH[i];
+      for(j=0;j<r.length;j++){var w=(ka?Math.exp(-ka*r[j]):1)/r[j], ph=k*r[j];
+        re+=w*Math.cos(ph); im-=w*Math.sin(ph);}
+    }
+    if(!any)return null;
+    return 20*Math.log10(D_REF*Math.hypot(re,im)/ppm+1e-9)+boxDB(f)+filtDB(f);
+  }
+  /* 1/3-oktávové vážení */
+  var NF=340, FF=[], i0;
+  for(i0=0;i0<=NF;i0++)FF.push(20*Math.pow(1000,i0/NF));
+  function curve(){
+    var pw=[],i,j;
+    for(i=0;i<=NF;i++){var d=sumDB(FF[i]); if(d===null)return null; pw.push(Math.pow(10,d/10));}
+    var out=[];
+    for(i=0;i<=NF;i++){
+      var flo=FF[i]*Math.pow(2,-1/6), fhi=FF[i]*Math.pow(2,1/6), s=0, c=0;
+      for(j=Math.max(0,i-9);j<=Math.min(NF,i+9);j++){if(FF[j]>=flo&&FF[j]<=fhi){s+=pw[j];c++;}}
+      out.push(10*Math.log10(s/Math.max(1,c)+1e-12));
+    }
+    return out;
+  }
+  function atF(cv,f){var i,best=0,bd=1e9;for(i=0;i<=NF;i++){var d=Math.abs(Math.log(FF[i]/f));if(d<bd){bd=d;best=i;}}return cv[best];}
+
+  /* ---------- layout ---------- */
+  function applyLayout(){
+    isMobile=mq.matches; closeZoom();
+    var L=state.far?(isMobile?LO_MF:LO_DF):(isMobile?LO_MN:LO_DN);
+    S=L.S; VBW=L.VBW; VBH=L.VBH; MXpx=L.MXpx; GYpx=L.GYpx; INSET=L.inset; MW=L.mw; MH=L.mh;
+    WORLD={w:(L.SW-MXpx)/S, h:GYpx/S};
+    scene.setAttribute('viewBox','0 0 '+VBW+' '+VBH);
+    if(mRespSvg) mRespSvg.setAttribute('viewBox','0 0 '+MW+' '+MH);
+  }
+
+  /* ---------- kreslení modulu ---------- */
+  function drawLAbox(g,bx,front,active,hot,aimed){
+    var a=bx.a,b=bx.b;
+    var ax=X(a.x),ay=Y(a.y),bxp=X(b.x),by=Y(b.y);
+    var npx=bx.nx,npy=-bx.ny,nl=Math.hypot(npx,npy)||1;npx/=nl;npy/=nl;
+    var ux=bxp-ax,uy=by-ay,ul=Math.hypot(ux,uy)||1;ux/=ul;uy/=ul;
+    var D=front*S, tap=ul*0.16;
+    var backTop=(ax-npx*D+ux*tap)+' '+(ay-npy*D+uy*tap), backBot=(bxp-npx*D-ux*tap)+' '+(by-npy*D-uy*tap);
+    var fill=active?CABBG:OFFBG, st=active?MUTED:OFFST, op=active?1:.62;
+    var shell=ax+' '+ay+' '+bxp+' '+by+' '+backBot+' '+backTop;
+    if(aimed) g.appendChild(el('polygon',{points:shell,fill:'none',stroke:SUM,'stroke-width':7,opacity:.20}));
+    g.appendChild(el('polygon',{points:shell,fill:fill,stroke:hot?RED:st,'stroke-width':hot?1.8:1,opacity:op}));
+    var gd=D*0.30;
+    g.appendChild(el('polygon',{points:ax+' '+ay+' '+bxp+' '+by+' '+(bxp-npx*gd)+' '+(by-npy*gd)+' '+(ax-npx*gd)+' '+(ay-npy*gd),
+      fill:active?GRILL:OFFBG,stroke:st,'stroke-width':.5,opacity:op}));
+    var mx=(ax+bxp)/2,my=(ay+by)/2;
+    g.appendChild(el('line',{x1:ax*0.5+mx*0.5,y1:ay*0.5+my*0.5,x2:mx-npx*D*0.85,y2:my-npy*D*0.85,stroke:st,'stroke-width':.5,opacity:.6*op}));
+    g.appendChild(el('line',{x1:bxp*0.5+mx*0.5,y1:by*0.5+my*0.5,x2:mx-npx*D*0.85,y2:my-npy*D*0.85,stroke:st,'stroke-width':.5,opacity:.6*op}));
+    if(!active){ // křížek = vypnuto
+      var kx=mx-npx*D*0.5, ky=my-npy*D*0.5, s7=4.6;
+      g.appendChild(el('line',{x1:kx-ux*s7,y1:ky-uy*s7,x2:kx+ux*s7,y2:ky+uy*s7,stroke:CANCEL,'stroke-width':1.2,opacity:.5}));
+      g.appendChild(el('line',{x1:kx-npx*s7,y1:ky-npy*s7,x2:kx+npx*s7,y2:ky+npy*s7,stroke:CANCEL,'stroke-width':1.2,opacity:.5}));
+    }
+    if(aimed&&!hot)  // ostrý obrys namířeného modulu navrch – čitelný i ve vypnutém stavu
+      g.appendChild(el('polygon',{points:shell,fill:'none',stroke:SUM,'stroke-width':2}));
+  }
+
+  /* ---------- mobilní lupa na array ---------- */
+  var zoomT=null;
+  function bumpZoom(){clearTimeout(zoomT);
+    zoomT=setTimeout(function(){state.zoom=false;render();},2000);}
+  function closeZoom(){clearTimeout(zoomT);state.zoom=false;}
+  function arrayBBox(){
+    var mnx=1e9,mny=1e9,mxx=-1e9,mxy=-1e9;
+    BOXES.forEach(function(b){
+      var npx=b.nx,npy=-b.ny,nl=Math.hypot(npx,npy)||1;npx/=nl;npy/=nl;
+      var D=0.42*S;
+      [[X(b.a.x),Y(b.a.y)],[X(b.b.x),Y(b.b.y)],
+       [X(b.a.x)-npx*D,Y(b.a.y)-npy*D],[X(b.b.x)-npx*D,Y(b.b.y)-npy*D]].forEach(function(p){
+        if(p[0]<mnx)mnx=p[0]; if(p[0]>mxx)mxx=p[0];
+        if(p[1]<mny)mny=p[1]; if(p[1]>mxy)mxy=p[1];});
+    });
+    return {x:mnx,y:mny,w:mxx-mnx,h:mxy-mny};
+  }
+  function drawZoom(g){
+    var K=2, bb=arrayBBox(), pad=12;
+    var pw=(bb.w+pad*2)*K, ph=(bb.h+pad*2)*K;
+    var px=Math.min(Math.max(pw/2+6,VBW/2), VBW-pw/2-6);
+    var py=Math.min(Math.max(ph/2+6,VBH/2), VBH-ph/2-6);
+    // zavírací podklad přes celé plátno
+    var back=el('rect',{x:0,y:0,width:VBW,height:VBH,fill:'rgba(245,242,234,.55)'});
+    back.addEventListener('pointerdown',function(ev){ev.preventDefault();closeZoom();render();});
+    g.appendChild(back);
+    g.appendChild(el('rect',{x:px-pw/2,y:py-ph/2,width:pw,height:ph,fill:'#FFFFFF',
+      stroke:GOLD,'stroke-width':1.4}));
+    var cx=bb.x+bb.w/2, cy=bb.y+bb.h/2;
+    var gg=el('g',{transform:'translate('+(px-K*cx).toFixed(2)+','+(py-K*cy).toFixed(2)+') scale('+K+')'});
+    g.appendChild(gg);
+    BOXES.forEach(function(b,i){drawLAbox(gg,b,0.30,!!state.on[i],false,i===AIMED);});
+    BOXES.forEach(function(b,i){
+      var mx=(X(b.a.x)+X(b.b.x))/2, my=(Y(b.a.y)+Y(b.b.y))/2;
+      gg.appendChild(tx({x:mx-b.nx*0.16*S,y:my+b.ny*0.16*S+2.5,fill:state.on[i]?TEXT:MUTED,
+        'font-size':7,'text-anchor':'middle','font-family':MONO,'font-weight':'bold'},(i+1)+''));
+    });
+    BOXES.forEach(function(b,i){hitArea(gg,b,i,true);});
+  }
+
+  function hitArea(g,bx,i,inZoom){
+    var a=bx.a,b=bx.b;
+    var npx=bx.nx,npy=-bx.ny,nl=Math.hypot(npx,npy)||1;npx/=nl;npy/=nl;
+    var ax=X(a.x),ay=Y(a.y),bxp=X(b.x),by=Y(b.y), D=0.42*S, pad=4;
+    var ux=bxp-ax,uy=by-ay,ul=Math.hypot(ux,uy)||1;ux/=ul;uy/=ul;
+    var p=[ (ax+npx*pad-ux*pad)+' '+(ay+npy*pad-uy*pad),
+            (bxp+npx*pad+ux*pad)+' '+(by+npy*pad+uy*pad),
+            (bxp-npx*D+ux*pad)+' '+(by-npy*D+uy*pad),
+            (ax-npx*D-ux*pad)+' '+(ay-npy*D-uy*pad) ].join(' ');
+    var e=el('polygon',{points:p,fill:'transparent','class':'hot'});
+    e.addEventListener('pointerdown',function(ev){ev.preventDefault();ev.stopPropagation();
+      if(isMobile&&!inZoom){                            // první ťuknutí jen vytáhne lupu
+        state.zoom=true;bumpZoom();render();return;}
+      state.on[i]=state.on[i]?0:1;
+      state.hover=(ev.pointerType==='mouse')?i:-1;      // na dotyku nenechávat zvýraznění viset
+      if(state.zoom)bumpZoom();
+      render();});
+    e.addEventListener('pointerenter',function(ev){
+      if(ev.pointerType&&ev.pointerType!=='mouse')return;
+      if(state.hover!==i){state.hover=i;render();}});
+    e.addEventListener('pointerleave',function(){if(state.hover===i){state.hover=-1;render();}});
+    g.appendChild(e);
+  }
+
+  /* ---------- render ---------- */
+  function render(){
+    scene.innerHTML='';
+    var gGrid=el('g',{}),gPlot=el('g',{}),gBeam=el('g',{}),gSrc=el('g',{}),gDyn=el('g',{}),gLab=el('g',{}),gHit=el('g',{});
+    [gGrid,gPlot,gBeam,gSrc,gDyn,gLab,gHit].forEach(function(x){scene.appendChild(x);});
+
+    /* zem + pásmo uší */
+    gGrid.appendChild(el('line',{x1:X(0),y1:Y(0),x2:X(WORLD.w),y2:Y(0),stroke:LINE,'stroke-width':1.4}));
+    gGrid.appendChild(el('line',{x1:X(0),y1:Y(EAR),x2:X(WORLD.w),y2:Y(EAR),stroke:LINE,'stroke-width':.7,opacity:.6,'stroke-dasharray':'3,4'}));
+    gGrid.appendChild(tx({x:X(0.12),y:Y(EAR)-4,fill:MUTED,'font-size':9,'font-family':MONO},'uši 1,7 m'));
+
+    /* směrovost – 14° pás z hran modulu (jen zapnuté) */
+    if(state.aim){
+      BOXES.forEach(function(b,i){
+        var on=!!state.on[i], aimed=(i===AIMED);
+        if(!on&&!aimed)return;
+        var phi=Math.atan2(b.ny,b.nx), R=WORLD.w*0.26, hit=Math.abs(OFFAX[i])<=7;
+        var sdn=Math.sin(phi-HALF);                       // paprsek utni o zem, ať nejde pod podlahu
+        if(sdn<-0.02) R=Math.min(R, b.b.y/(-sdn));
+        var uax=b.a.x+Math.cos(phi+HALF)*R,uay=b.a.y+Math.sin(phi+HALF)*R;
+        var lbx=b.b.x+Math.cos(phi-HALF)*R,lby=b.b.y+Math.sin(phi-HALF)*R;
+        var pts=X(b.a.x)+' '+Y(b.a.y)+' '+X(uax)+' '+Y(uay)+' '+X(lbx)+' '+Y(lby)+' '+X(b.b.x)+' '+Y(b.b.y);
+        if(!on){   // namířený, ale vypnutý – jen obrys
+          gBeam.appendChild(el('polygon',{points:pts,fill:'none',stroke:'rgba(46,125,79,.34)',
+            'stroke-width':.9,'stroke-dasharray':'5,4'}));
+          return;
+        }
+        gBeam.appendChild(el('polygon',{points:pts,
+          fill:hit?'rgba(46,125,79,.16)':'rgba(143,107,34,.09)',
+          stroke:hit?'rgba(46,125,79,.42)':'rgba(143,107,34,.24)','stroke-width':hit?1:.6}));
+      });
+      /* spojnice mikrofon – namířené moduly */
+      BOXES.forEach(function(b,i){
+        if(Math.abs(OFFAX[i])>7&&i!==AIMED)return;
+        var on=!!state.on[i], cx=(b.a.x+b.b.x)/2, cy=(b.a.y+b.b.y)/2;
+        gBeam.appendChild(el('line',{x1:X(cx),y1:Y(cy),x2:X(MIC.x),y2:Y(MIC.y),
+          stroke:on?'rgba(46,125,79,.55)':'rgba(46,125,79,.28)','stroke-width':1.2,'stroke-dasharray':'6,4'}));
+      });
+    }
+
+    /* moduly */
+    BOXES.forEach(function(b,i){drawLAbox(gSrc,b,0.30,!!state.on[i],state.hover===i,i===AIMED);});
+
+    /* popisky modulů – sloupec vlevo s vodicími čárami (jen když je array dost velký) */
+    if(state.labels && S>45){
+      var LXw=(56-MXpx)/S;                                  // world x sloupce popisků
+      gLab.appendChild(tx({x:14,y:15,fill:GOLD,'font-size':8.5,
+        'font-family':MONO,'font-weight':'bold','letter-spacing':'.06em'},'MODUL · SPLAY ÚHEL'));
+      BOXES.forEach(function(b,i){
+        var cx=(b.a.x+b.b.x)/2, cy=(b.a.y+b.b.y)/2;
+        var bxw=cx-b.nx*0.30, byw=cy-b.ny*0.30;             // bod za modulem
+        var ly=ATOP.y-0.34-i*0.28;
+        var aim=(i===AIMED), on=!!state.on[i];
+        var col=aim?SUM:(on?MUTED:'#A29C90');
+        gLab.appendChild(el('line',{x1:X(LXw)+5,y1:Y(ly)-3,x2:X(bxw),y2:Y(byw),
+          stroke:col,'stroke-width':.6,opacity:on?.5:.35}));
+        gLab.appendChild(tx({x:X(LXw)+2,y:Y(ly),fill:col,'font-size':10,'text-anchor':'end',
+          'font-family':MONO,'font-weight':aim?'bold':'normal'},
+          (i+1)+' · '+(i?SPLAYS[i-1]:0)+'°'+(aim?' ◄':'')));
+      });
+    }
+
+    /* mikrofon (pevný) */
+    var Lx=X(MIC.x),Ly=Y(MIC.y);
+    gDyn.appendChild(el('line',{x1:Lx,y1:Ly,x2:Lx,y2:Y(0),stroke:MUTED,'stroke-width':1.4}));
+    gDyn.appendChild(el('circle',{cx:Lx,cy:Ly,r:9,fill:RED,stroke:TEXT,'stroke-width':2}));
+    gDyn.appendChild(el('circle',{cx:Lx,cy:Ly,r:2.6,fill:TEXT}));
+    gDyn.appendChild(tx({x:Lx,y:Ly-13,fill:TEXT,'font-size':10,'text-anchor':'middle','font-family':MONO,'font-weight':'bold'},'mikrofon'));
+
+    drawRuler(gLab);
+
+    /* přenos */
+    var cv=state.transfer?curve():null;
+    if(state.transfer){
+      if(INSET){ drawTransfer(gPlot,cv,GTR,true); }
+      else { drawTransferBelow(cv); }
+    }
+    if(mRespSvg&&!(state.transfer&&!INSET))mRespSvg.innerHTML='';
+    document.getElementById('mstage').style.display=(state.transfer&&!INSET)?'block':'none';
+
+    /* klikací plochy nahoře; na mobilu při otevřené lupě jen v lupě */
+    if(state.zoom&&isMobile) drawZoom(gHit);
+    else BOXES.forEach(function(b,i){hitArea(gHit,b,i,false);});
+
+    /* readouty */
+    var n=state.on.reduce(function(s,v){return s+v;},0);
+    document.getElementById('rN').textContent=n;
+    var full=n?(cv||curve()):null;
+    var lo=full?atF(full,250):null, hi=full?atF(full,4000):null;
+    document.getElementById('rLo').textContent=(lo===null)?'–':(lo>0?'+':'')+lo.toFixed(1);
+    document.getElementById('rHi').textContent=(hi===null)?'–':(hi>0?'+':'')+hi.toFixed(1);
+    var dEl=document.getElementById('rD'), dW=document.getElementById('rDwrap');
+    dW.className='rd';
+    if(lo===null){dEl.textContent='–';}
+    else{var dd=lo-hi;dEl.textContent=(dd>0?'+':'')+dd.toFixed(1);dW.className='rd '+(dd>=3?'g':(dd<=-3?'r':''));}
+  }
+
+  function drawRuler(g){
+    var y=GYpx+16;
+    g.appendChild(el('line',{x1:X(0),y1:y,x2:X(WORLD.w),y2:y,stroke:MUTED,'stroke-width':1}));
+    var step=WORLD.w>16?5:2;
+    for(var d=0; ATOP.x+d<=WORLD.w-0.2; d+=step){
+      var xx=X(ATOP.x+d);
+      g.appendChild(el('line',{x1:xx,y1:y-3,x2:xx,y2:y+3,stroke:MUTED,'stroke-width':1}));
+      g.appendChild(tx({x:xx,y:y+15,fill:MUTED,'font-size':9,'text-anchor':'middle','font-family':MONO},d+''));
+    }
+    var dm=MIC.x-ATOP.x, xm=X(MIC.x);
+    g.appendChild(el('path',{d:'M'+xm+','+(y-6)+' l-4,-6 l8,0 z',fill:RED}));
+    g.appendChild(tx({x:xm,y:y-14,fill:RED,'font-size':10,'text-anchor':'middle','font-family':MONO,'font-weight':'bold'},dm.toFixed(1)+' m'));
+  }
+
+  function drawTransfer(g,cv,box,showTitle){
+    g.appendChild(el('rect',{x:box.x,y:box.y,width:box.w,height:box.h,fill:'#FFFFFF',stroke:LINE,'stroke-width':.8,opacity:.96}));
+    if(showTitle) g.appendChild(tx({x:box.x+8,y:box.y+13,fill:GOLD,'font-size':10,'font-family':MONO,'font-weight':'bold','letter-spacing':'.08em'},
+      'PŘENOS · MIKROFON · '+(state.opt?'optimalizovaný modul':'rovný modul')+(state.air?' · vzduch 20 °C/50 %':'')));
+    var ML=box.x+34,MR=box.x+box.w-8,MT=box.y+(showTitle?20:10),MB=box.y+box.h-16,PW=MR-ML,PH=MB-MT;
+    var lf=Math.log10(20),hf=Math.log10(20000),dTop=24,dBot=-24;
+    function Xf(f){return ML+(Math.log10(f)-lf)/(hf-lf)*PW;}
+    function Yd(d){return MT+(dTop-d)/(dTop-dBot)*PH;}
+    [24,18,12,6,0,-6,-12,-18,-24].forEach(function(d){
+      g.appendChild(el('line',{x1:ML,y1:Yd(d),x2:MR,y2:Yd(d),stroke:d===0?'rgba(25,24,23,.26)':LINE,'stroke-width':d===0?1:.5}));
+      g.appendChild(tx({x:ML-5,y:Yd(d)+3,fill:MUTED,'font-size':8.5,'text-anchor':'end','font-family':MONO},(d>0?'+':'')+d));});
+    [20,100,1000,10000,20000].forEach(function(f){
+      g.appendChild(el('line',{x1:Xf(f),y1:MT,x2:Xf(f),y2:MB,stroke:LINE,'stroke-width':.5,opacity:.6}));
+      g.appendChild(tx({x:Xf(f),y:MB+11,fill:MUTED,'font-size':8.5,'text-anchor':'middle','font-family':MONO},f>=1000?(f/1000)+'k':f));});
+    if(!cv){
+      g.appendChild(tx({x:(ML+MR)/2,y:(MT+MB)/2+4,fill:MUTED,'font-size':11,'text-anchor':'middle','font-family':MONO},'všechny moduly vypnuté'));
+      return;
+    }
+    var d='',i;
+    for(i=0;i<=NF;i++){
+      var dc=cv[i]; if(dc<dBot-3)dc=dBot-3; if(dc>dTop)dc=dTop;
+      d+=(i?'L':'M')+Xf(FF[i]).toFixed(1)+' '+Yd(dc).toFixed(1);
+    }
+    g.appendChild(el('path',{d:d,fill:'none',stroke:TEXT,'stroke-width':1.6,'stroke-linejoin':'round'}));
+    /* vodicí křivka filtrů (coupling + HFC) */
+    if(state.cpl!==0||state.hfc!==0){
+      var dsh='';
+      for(i=0;i<=NF;i++){var sh=Math.max(dBot,Math.min(dTop,filtDB(FF[i])));
+        dsh+=(i?'L':'M')+Xf(FF[i]).toFixed(1)+' '+Yd(sh).toFixed(1);}
+      g.appendChild(el('path',{d:dsh,fill:'none',stroke:GOLD,'stroke-width':.9,opacity:.5,'stroke-dasharray':'4,3'}));
+    }
+    /* značky odečtů 250 Hz / 4 kHz */
+    [[250,'250 Hz'],[4000,'4 kHz']].forEach(function(m){
+      var v=Math.max(dBot,Math.min(dTop,atF(cv,m[0])));
+      g.appendChild(el('line',{x1:Xf(m[0]),y1:MT,x2:Xf(m[0]),y2:MB,stroke:GOLD,'stroke-width':.9,opacity:.55,'stroke-dasharray':'3,3'}));
+      g.appendChild(el('circle',{cx:Xf(m[0]),cy:Yd(v),r:3.2,fill:GOLD,stroke:'#fff','stroke-width':1}));
+      g.appendChild(tx({x:Xf(m[0])+5,y:MT+11,fill:GOLD,'font-size':8.5,'font-family':MONO,'font-weight':'bold'},m[1]));
+    });
+  }
+
+  function drawTransferBelow(cv){
+    if(!mRespSvg)return;
+    mRespSvg.innerHTML='';
+    var g=el('g',{}); mRespSvg.appendChild(g);
+    drawTransfer(g,cv,{x:0,y:0,w:MW,h:MH},true);
+  }
+
+  /* ---------- ovládání ---------- */
+  document.getElementById('modSeg').addEventListener('click',function(e){
+    var b=e.target.closest('button');if(!b)return;
+    if(b.dataset.act==='all'){state.on=[1,1,1,1,1,1,1,1];}
+    else{state.on=[0,0,0,0,0,0,0,0];state.on[AIMED]=1;}   // jen modul namířený na mikrofon
+    setCpl(0,true);                                       // změna počtu modulů → coupling filtr zpět na nulu
+    closeZoom();render();
+  });
+  function wire(id,sw,key){var box=document.getElementById(id);
+    box.addEventListener('change',function(){state[key]=box.checked;document.getElementById(sw).classList.toggle('on',box.checked);render();});}
+  wire('tglA','swA','aim');wire('tglL','swL','labels');wire('tglT','swT','transfer');
+  wire('tglO','swO','opt');
+  /* coupling filtr */
+  function setCpl(v,quiet){state.cpl=Math.max(-20,Math.min(12,v));
+    document.getElementById('cplV').textContent=(state.cpl>0?'+':'')+state.cpl+' dB';
+    if(!quiet)render();}
+  document.getElementById('cplM').addEventListener('click',function(){setCpl(state.cpl-1);});
+  document.getElementById('cplP').addEventListener('click',function(){setCpl(state.cpl+1);});
+  /* HFC */
+  var hfcSeg=document.getElementById('hfcSeg');
+  function setHfc(v){state.hfc=v;
+    [].forEach.call(hfcSeg.children,function(x){x.setAttribute('aria-pressed',(+x.dataset.hfc===v)?'true':'false');});}
+  hfcSeg.addEventListener('click',function(e){
+    var b=e.target.closest('button');if(!b)return;
+    setHfc(+b.dataset.hfc);render();});
+  /* útlum vzduchu – po vypnutí nemá HFC co kompenzovat, takže se resetuje */
+  (function(){var box=document.getElementById('tglAir');
+    box.addEventListener('change',function(){
+      state.air=box.checked;
+      document.getElementById('swAir').classList.toggle('on',box.checked);
+      if(!state.air) setHfc(0);
+      render();});})();
+  /* pozice mikrofonu */
+  document.getElementById('micSeg').addEventListener('click',function(e){
+    var b=e.target.closest('button');if(!b)return;
+    var far=(b.dataset.far==='1'); if(far===state.far)return;
+    var old=AIMED, solo=(state.on.reduce(function(s,v){return s+v;},0)===1&&state.on[old]===1);
+    state.far=far;
+    [].forEach.call(this.children,function(x){x.setAttribute('aria-pressed',x===b?'true':'false');});
+    setMic();
+    if(solo){state.on=[0,0,0,0,0,0,0,0];state.on[AIMED]=1;}   // „jeden“ přepni na nově namířený
+    state.hover=-1; applyLayout(); render();});
+
+  /* ---------- init ---------- */
+  applyLayout();render();
+  function onLayoutChange(){applyLayout();render();}
+  if(mq.addEventListener)mq.addEventListener('change',onLayoutChange);else mq.addListener(onLayoutChange);
+  var rzT=null;
+  window.addEventListener('resize',function(){clearTimeout(rzT);rzT=setTimeout(onLayoutChange,150);});
+})();
+</script>
+
+</body>
+</html>
