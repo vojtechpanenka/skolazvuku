@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nástroje | Škola zvuku</title>
+<meta name="description" content="Interaktivní výukové nástroje Školy zvuku.">
+<meta name="robots" content="noindex">
+<style>
+  :root {
+    --bg: #fafaf9;
+    --card: #ffffff;
+    --text: #1c1917;
+    --muted: #6b6560;
+    --border: #e7e5e4;
+    --accent: #c2410c;
+    --note-bg: #fff7ed;
+    --note-border: #fed7aa;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #141312;
+      --card: #1e1c1b;
+      --text: #f5f5f4;
+      --muted: #a8a29e;
+      --border: #2e2b29;
+      --accent: #fb923c;
+      --note-bg: #2a1d12;
+      --note-border: #5a3a1e;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  main {
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 48px 16px 64px;
+  }
+  .brand {
+    font-size: 14px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-decoration: none;
+  }
+  .brand:hover { color: var(--accent); }
+  h1 {
+    font-size: 28px;
+    margin: 8px 0 16px;
+  }
+  .note {
+    background: var(--note-bg);
+    border: 1px solid var(--note-border);
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 14px;
+    margin-bottom: 32px;
+  }
+  ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: 12px;
+  }
+  a.tool {
+    display: block;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 18px;
+    color: inherit;
+    text-decoration: none;
+    transition: border-color .15s, transform .15s;
+  }
+  a.tool:hover {
+    border-color: var(--accent);
+    transform: translateY(-1px);
+  }
+  .name {
+    font-weight: 600;
+    font-size: 17px;
+  }
+  .name::after {
+    content: " →";
+    color: var(--accent);
+  }
+  .desc {
+    color: var(--muted);
+    font-size: 14px;
+    margin-top: 2px;
+  }
+  footer {
+    margin-top: 40px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  footer a { color: inherit; }
+</style>
+</head>
+<body>
+<main>
+  <a class="brand" href="https://skolazvuku.cz">Škola zvuku</a>
+  <h1>Nástroje</h1>
+
+  <div class="note">
+    Jde o účelově vyvinuté výukové nástroje. Stoprocentní funkčnost není zaručena
+    a nástroje mohou obsahovat funkční i textové chyby.
+  </div>
+
+  <ul>
+    <li>
+      <a class="tool" href="coupling-vyuka.html">
+        <div class="name">Coupling</div>
+        <div class="desc">Sčítání a vazba více zdrojů</div>
+      </a>
+    </li>
+    <li>
+      <a class="tool" href="endfire-gradient-vyuka.html">
+        <div class="name">Endfire &amp; gradient</div>
+        <div class="desc">Směrové uspořádání subwooferů</div>
+      </a>
+    </li>
+    <li>
+      <a class="tool" href="fresnel-vyuka.html">
+        <div class="name">Fresnel</div>
+        <div class="desc">Fresnelovy zóny</div>
+      </a>
+    </li>
+    <li>
+      <a class="tool" href="zvuk-laborator.html">
+        <div class="name">Šíření zvuku v prostoru</div>
+        <div class="desc">Hrátky se zvukem</div>
+      </a>
+    </li>
+  </ul>
+
+  <footer>
+    © Škola zvuku · <a href="https://skolazvuku.cz">skolazvuku.cz</a>
+  </footer>
+</main>
+</body>
+</html>
